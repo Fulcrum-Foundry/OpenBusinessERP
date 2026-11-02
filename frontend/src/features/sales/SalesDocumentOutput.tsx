@@ -194,6 +194,7 @@ export function SendDialog({ doc, onClose }: { doc: SalesDoc; onClose: () => voi
       onClose={onClose}
       size="xl"
       busy={send.isPending}
+      onSubmit={() => { if (!(noMail || !to.trim() || !subject.trim())) submit(); }}
       title={t('sales.send_title', { defaultValue: 'Send {{number}} by email', number: doc.number })}
       footer={
         <div className="flex justify-end gap-2">

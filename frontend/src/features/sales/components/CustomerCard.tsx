@@ -31,6 +31,7 @@ export function CustomerCard({
             displayValue={form.customer_name}
             onChange={(id, name) => set({ customer_id: id, customer_name: name })}
             showBrowse
+            compact
           />
           {error && <p className="text-xs text-semantic-error">{error}</p>}
           <label className="block text-xs text-content-tertiary">

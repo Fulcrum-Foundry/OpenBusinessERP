@@ -49,9 +49,9 @@ export const toForm = (d?: SalesDoc, currency = 'EUR', taxRate = '0'): SalesForm
   lines:
     d?.lines.map((l) => ({
       ...l,
-      qty: String(l.qty),
-      unit_price: String(l.unit_price),
-      discount_pct: String(l.discount_pct),
+      qty: trimDecimals(String(l.qty)),
+      unit_price: trimDecimals(String(l.unit_price), 2),
+      discount_pct: trimDecimals(String(l.discount_pct)),
       tax_rate: String(l.tax_rate),
     })) ?? [emptyLine(taxRate)],
 });
@@ -86,3 +86,11 @@ export function toBody(f: SalesForm): SalesDocInput {
 }
 
 export type FormErrors = Partial<Record<'customer' | 'currency' | 'doc_date' | 'due_date' | 'lines', string>>;
+
+/** Drop storage-scale trailing zeros ("55.1000" → "55.10", "0.0000" → "0") so edit fields read like what was typed. */
+export function trimDecimals(v: string, minDec = 0): string {
+  const m = /^(-?\d+)\.(\d+)$/.exec(v);
+  if (!m) return v;
+  const frac = m[2]!.replace(/0+$/, '').padEnd(minDec, '0');
+  return frac ? `${m[1]}.${frac}` : m[1]!;
+}

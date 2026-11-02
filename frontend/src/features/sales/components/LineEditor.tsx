@@ -166,15 +166,15 @@ export function LineEditor({
                     ))}
                   </select>
                 </td>
-                <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                <td className="whitespace-nowrap px-2 py-1 text-right leading-[30px] tabular-nums">
                   <MoneyDisplay amount={lineTotals(l).net} currency={currency} />
                 </td>
-                <td className="px-1 py-1.5">
+                <td className="px-1 py-1">
                   {editable && lines.length > 1 && (
                     <button
                       type="button"
                       aria-label={t('common.delete', { defaultValue: 'Delete' })}
-                      className="text-content-tertiary hover:text-semantic-error"
+                      className="flex h-[30px] items-center text-content-tertiary hover:text-semantic-error"
                       onClick={() => onChange(lines.filter((_, j) => j !== i))}
                     >
                       <Trash2 className="h-4 w-4" />
