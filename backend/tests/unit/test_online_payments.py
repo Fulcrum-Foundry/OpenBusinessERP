@@ -151,6 +151,18 @@ async def test_stripe_link_then_webhook_books_once(session, calls):
     assert pdf.startswith(b"%PDF")
 
 
+async def test_retire_open_links_drops_the_reusable_link(session, calls):
+    ps.write_payment_settings(
+        {"provider": "stripe", "stripe_secret_key": "sk_test_abc", "public_base_url": "https://erp.example.com"}
+    )
+    _, _, inv = await _invoice(session)
+    link = await op.ensure_link(session, inv)
+    assert await op.open_link(session, inv) is link
+    await op.retire_open_links(session, inv)
+    await session.refresh(link)
+    assert link.status == "replaced" and await op.open_link(session, inv) is None
+
+
 async def test_mollie_fetch_verifies_and_partial_payment(session, calls):
     ps.write_payment_settings(
         {"provider": "mollie", "mollie_api_key": "test_key", "public_base_url": "https://erp.example.com"}

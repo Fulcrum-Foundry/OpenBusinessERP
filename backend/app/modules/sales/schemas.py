@@ -216,6 +216,7 @@ class ActivityEvent(BaseModel):
     type: str
     actor: str | None
     message: str
+    params: dict[str, str] = Field(default_factory=dict)
     ref_id: uuid.UUID | None
 
 

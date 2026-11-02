@@ -15,6 +15,7 @@ import { MailNotConfigured } from '@/features/settings/MailSettings';
 import { mailtoHref } from './modals/ReminderDraftsModal';
 import { fetchSalesPdf, kindPath, salesApi, type SalesDoc, type SendBody } from './api';
 import { formatDateValue, fmtList } from '@/shared/lib/formatters';
+import { checkText } from './lib/activity';
 
 const input =
   'w-full rounded border border-border-light bg-surface-primary px-2 py-1 text-sm text-content-primary focus:border-border focus:outline-none';
@@ -83,7 +84,7 @@ export function SalesDocumentOutput({ doc }: { doc: SalesDoc }) {
               </p>
               <ul className="list-disc pl-6 text-content-secondary">
                 {check.data.map((i) => (
-                  <li key={i.field}>{i.message}</li>
+                  <li key={i.field}>{checkText(t, i)}</li>
                 ))}
               </ul>
             </div>
@@ -194,7 +195,6 @@ export function SendDialog({ doc, onClose }: { doc: SalesDoc; onClose: () => voi
       onClose={onClose}
       size="xl"
       busy={send.isPending}
-      onSubmit={() => { if (!(noMail || !to.trim() || !subject.trim())) submit(); }}
       title={t('sales.send_title', { defaultValue: 'Send {{number}} by email', number: doc.number })}
       footer={
         <div className="flex justify-end gap-2">

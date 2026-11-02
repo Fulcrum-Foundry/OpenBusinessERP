@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { GripVertical, Plus, Trash2 } from 'lucide-react';
 import { Button, MoneyDisplay } from '@/shared/ui';
 import { lineTotals, type SalesLine } from '../api';
+import { getNumberLocale } from '@/stores/usePreferencesStore';
 import { emptyLine } from '../lib/form';
 import { moveItem, type LineError } from '../lib/totals';
 import { ItemPicker } from './ItemPicker';
@@ -61,9 +62,9 @@ export function LineEditor({
           <tr>
             <th className="w-6" />
             <th className="w-24 px-2 py-2 font-medium">{t('sales.sku', { defaultValue: 'SKU' })}</th>
-            <th className="px-2 py-2 font-medium">{t('sales.description', { defaultValue: 'Description' })}</th>
+            <th className="min-w-[13rem] px-2 py-2 font-medium">{t('sales.description', { defaultValue: 'Description' })}</th>
             <th className="w-[4.5rem] px-2 py-2 text-right font-medium">{t('sales.qty', { defaultValue: 'Qty' })}</th>
-            <th className="w-24 px-2 py-2 text-right font-medium">{t('sales.unit_price', { defaultValue: 'Unit price' })}</th>
+            <th className="w-28 px-2 py-2 text-right font-medium">{t('sales.unit_price', { defaultValue: 'Unit price' })}</th>
             <th className="w-[4.5rem] px-2 py-2 text-right font-medium">{t('sales.discount', { defaultValue: 'Disc. %' })}</th>
             <th className="w-[5.5rem] px-2 py-2 text-right font-medium">{t('sales.tax_rate', { defaultValue: 'Tax %' })}</th>
             <th className="w-32 whitespace-nowrap px-2 py-2 text-right font-medium">{t('sales.net', { defaultValue: 'Net' })}</th>
@@ -200,7 +201,9 @@ export function LineEditor({
   );
 }
 
-// Read-only cells: show 51.3 / 3 instead of the API's 51.3000 / 3.0000.
+// Read-only cells: locale separators, no padding zeros (51,3 / 3 instead of 51.3000 / 3.0000).
 function trimDec(v: string): string {
-  return /^-?\d+\.\d+$/.test(v) ? v.replace(/(\.\d*?[1-9])0+$|\.0+$/, '$1') : v;
+  const n = Number(v);
+  if (v.trim() === '' || !Number.isFinite(n)) return v;
+  return new Intl.NumberFormat(getNumberLocale(), { maximumFractionDigits: 4 }).format(n);
 }

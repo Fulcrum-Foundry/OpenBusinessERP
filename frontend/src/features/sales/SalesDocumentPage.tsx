@@ -18,7 +18,7 @@ import { StatusTimeline } from './components/StatusTimeline';
 import { CustomerCard } from './components/CustomerCard';
 import { LineEditor } from './components/LineEditor';
 import { TotalsPanel } from './components/TotalsPanel';
-import { ActivityCard, AttachmentsCard, PaymentsCard, RelatedDocsCard } from './components/DocSidePanels';
+import { ActivityCard, AttachmentsCard, PaymentLinkCard, PaymentsCard, RelatedDocsCard } from './components/DocSidePanels';
 import { StickyActionBar } from './components/StickyActionBar';
 import { PdfPreviewPanel } from './components/PdfPreviewPanel';
 import type { ActionMenuItem } from './components/ActionMenu';
@@ -210,7 +210,7 @@ export function SalesDocumentPage() {
             {overdue && <Badge variant="error">{t('sales.status_overdue', { defaultValue: 'overdue' })}</Badge>}
           </span>
         }
-        actions={doc && <StatusTimeline kind={doc.kind} status={doc.status} />}
+        actions={doc && doc.kind !== 'credit_note' && <StatusTimeline kind={doc.kind} status={doc.status} />}
       />
       {err && (
         <div role="alert" className="rounded-lg border border-semantic-error/30 bg-semantic-error-bg px-3 py-2 text-sm text-semantic-error">
@@ -337,6 +337,7 @@ export function SalesDocumentPage() {
             </p>
           )}
           {doc?.kind === 'invoice' && doc.status !== 'draft' && <PaymentsCard doc={doc} onRecord={canPay ? () => setDialog('pay') : undefined} />}
+          {doc?.kind === 'invoice' && <PaymentLinkCard doc={doc} />}
           <RelatedDocsCard related={related.data} />
           {doc && <ActivityCard entries={activity.data} loading={activity.isLoading} />}
           <AttachmentsCard />
