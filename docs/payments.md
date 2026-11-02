@@ -74,3 +74,11 @@ Fees that were not booked automatically are booked when you reconcile the payout
 - *Dr fees / Cr clearing* for the difference
 
 After that, the clearing account returns to zero.
+
+## On the invoice
+
+An issued or partially paid invoice shows a **Payment link** card beside the totals when a provider is
+configured: state, amount, **Copy link**, **Open** and **Regenerate** (retires the open link and creates a new one).
+Without a link the card offers **Create link**. The card is hidden while no provider is set.
+`GET /api/v1/sales/invoices/{id}/payment-link/` returns `{configured, link}`;
+`POST …/payment-link/?regenerate=true` replaces the open link.

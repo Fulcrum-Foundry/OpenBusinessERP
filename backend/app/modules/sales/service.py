@@ -668,6 +668,7 @@ class SalesService:
                 "type": "created",
                 "actor": doc.created_by,
                 "message": f"Created {doc.number}",
+                "params": {"number": doc.number},
                 "ref_id": doc.id,
             }
         ]
@@ -679,6 +680,7 @@ class SalesService:
                     "type": "issued",
                     "actor": None,
                     "message": f"Issued {doc.number} and posted to the general ledger",
+                    "params": {"number": doc.number},
                     "ref_id": doc.gl_entry_id,
                 }
             )
@@ -693,6 +695,7 @@ class SalesService:
                     "type": "sent" if ok else "send_failed",
                     "actor": log.sent_by,
                     "message": f"Sent to {log.to_addr}" if ok else f"Sending to {log.to_addr} failed: {log.detail}",
+                    "params": {"to": log.to_addr, "detail": log.detail or ""},
                     "ref_id": log.id,
                 }
             )
@@ -703,6 +706,7 @@ class SalesService:
                     "type": "payment",
                     "actor": None,
                     "message": f"Payment {pay.amount} {doc.currency} ({pay.method})",
+                    "params": {"amount": str(pay.amount), "currency": doc.currency, "method": pay.method},
                     "ref_id": pay.id,
                 }
             )
@@ -713,11 +717,35 @@ class SalesService:
                     "type": "credit_note" if child.kind == "credit_note" else "derived",
                     "actor": child.created_by,
                     "message": f"{child.kind.replace('_', ' ').capitalize()} {child.number} created",
+                    "params": {"kind": child.kind, "number": child.number},
                     "ref_id": child.id,
                 }
             )
         events.sort(key=lambda e: e["at"], reverse=True)
+        await self._actor_names(events)
         return events
+
+    async def _actor_names(self, events: list[dict[str, Any]]) -> None:
+        """Replace user ids in ``actor`` by the user's name (or e-mail); unknown ids become None."""
+        from app.modules.users.models import User
+
+        ids: set[uuid.UUID] = set()
+        for e in events:
+            if e["actor"]:
+                try:
+                    ids.add(uuid.UUID(str(e["actor"])))
+                except ValueError:
+                    continue
+        names: dict[str, str] = {}
+        if ids:
+            rows = await self.session.execute(select(User.id, User.full_name, User.email).where(User.id.in_(ids)))
+            names = {str(i): (n or em) for i, n, em in rows.all()}
+        for e in events:
+            a = e["actor"]
+            if a and a in names:
+                e["actor"] = names[a]
+            elif a and len(str(a)) == 36 and str(a).count("-") == 4:
+                e["actor"] = None
 
     async def stats(self, today: date | None = None) -> dict[str, Any]:
         today = today or date.today()

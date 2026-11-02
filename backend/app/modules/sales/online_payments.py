@@ -268,6 +268,19 @@ async def open_link(session: AsyncSession, doc: SalesDocument) -> SalesPaymentLi
     return row if row is not None and row.amount == doc.balance_due else None
 
 
+async def retire_open_links(session: AsyncSession, doc: SalesDocument) -> None:
+    """Mark open links as replaced so ensure_link issues a fresh one."""
+    await session.execute(
+        update(SalesPaymentLink)
+        .where(
+            SalesPaymentLink.tenant_id == doc.tenant_id,
+            SalesPaymentLink.invoice_id == doc.id,
+            SalesPaymentLink.status == "open",
+        )
+        .values(status="replaced")
+    )
+
+
 async def ensure_link(session: AsyncSession, doc: SalesDocument) -> SalesPaymentLink | None:
     """Payment link for an open invoice, or None when no provider is configured or nothing is due."""
     if doc.kind != "invoice" or doc.status not in ("issued", "partially_paid") or doc.balance_due <= 0:

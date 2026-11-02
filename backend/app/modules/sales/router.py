@@ -38,7 +38,7 @@ from decimal import Decimal
 from typing import TypeVar
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
 from app.core.content_disposition import attachment_disposition
@@ -521,6 +521,8 @@ async def document_related(
 
 # ── Online payment links (Stripe / Mollie) ───────────────────────────────
 class PaymentLinkResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     provider: str
     url: str
     amount: Decimal
@@ -528,17 +530,41 @@ class PaymentLinkResponse(BaseModel):
     status: str
 
 
+class PaymentLinkState(BaseModel):
+    configured: bool
+    link: PaymentLinkResponse | None = None
+
+
+@router.get("/invoices/{doc_id}/payment-link/", response_model=PaymentLinkState)
+async def get_payment_link(
+    doc_id: uuid.UUID,
+    _user_id: CurrentUserId,
+    session: SessionDep,
+    svc: SalesService = Depends(_svc),
+    _perm: None = Depends(RequirePermission("sales.read")),
+):
+    from app.modules.sales import online_payments as op
+
+    doc = await _call(svc.get(doc_id, "invoice"))
+    if op.provider() is None:
+        return PaymentLinkState(configured=False)
+    return PaymentLinkState(configured=True, link=await op.open_link(session, doc))
+
+
 @router.post("/invoices/{doc_id}/payment-link/", response_model=PaymentLinkResponse, status_code=201)
 async def create_payment_link(
     doc_id: uuid.UUID,
     _user_id: CurrentUserId,
     session: SessionDep,
+    regenerate: bool = False,
     svc: SalesService = Depends(_svc),
     _perm: None = Depends(RequirePermission("sales.write")),
 ):
     from app.modules.sales import online_payments as op
 
     doc = await _call(svc.get(doc_id, "invoice"))
+    if regenerate:
+        await op.retire_open_links(session, doc)
     try:
         link = await op.ensure_link(session, doc)
     except op.PaymentProviderError as exc:
