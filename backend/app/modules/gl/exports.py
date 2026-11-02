@@ -14,7 +14,12 @@ DATEV limitations (documented in the UI as well):
 * Receivables/payables of sales/purchasing documents and their payments are
   booked on Debitor/Kreditor personal accounts (configurable ranges); entries
   without a resolvable partner stay on the collective account.
-* Amounts are exported in the base currency; Kurs/Basis-Umsatz stay empty.
+* Foreign-currency payments carry WKZ Umsatz (document currency), Umsatz (document currency),
+  Kurs (document-currency units per base unit) and Basis-Umsatz on their first row; all other rows are
+  in the base currency.
+* Payments with a Skonto line (accounts 873x/373x SKR03, 473x/573x SKR04) export the discount in the Skonto
+  column and drop the discount row; DATEV derives the Skonto booking itself.
+* Beleglink is ``BEDI "<document GUID>"`` for invoices and bills; Belegfeld 2 is the due date (TTMMJJ).
 * Multi-line entries are split into pairwise rows with the same Belegfeld 1.
 * VAT lines on SKR03 accounts 1571/1576/1771/1776 are folded into the net line
   (gross amount). Net accounts that are SKR03 Automatikkonten (3300/3400/8300/
@@ -27,7 +32,7 @@ from __future__ import annotations
 import json
 import re
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -127,6 +132,9 @@ class XEntry:
     due_date: date | None = None
     service_date: date | None = None
     partner_vat: str = ""
+    doc_id: str = ""  # GUID of the invoice/bill, for Beleglink
+    fx_currency: str = ""  # payment in a foreign currency: document currency of the payment
+    fx_amount: Decimal = Decimal(0)  # payment amount in that currency
 
 
 @dataclass
@@ -180,6 +188,10 @@ def _ymd(d: date | None) -> str:
 
 def _dmy(d: date | None) -> str:
     return d.strftime("%d%m%Y") if d else ""
+
+
+def _dmy2(d: date | None) -> str:
+    return d.strftime("%d%m%y") if d else ""
 
 
 def _encode(lines: list[str]) -> bytes:
@@ -284,6 +296,11 @@ class DatevRow:
     text: str
     kost1: str = ""
     kost2: str = ""
+    skonto: Decimal = Decimal(0)
+
+
+# Skonto accounts (Gewährte/Erhaltene Skonti, 7/19 %, ohne USt): SKR03 873x/373x, SKR04 473x/573x.
+SKONTO_ACCOUNTS = {f"{p}{n}" for p in ("873", "373", "473", "573") for n in range(10)}
 
 
 def _fold_tax(lines: list[XLine]) -> list[tuple[str, Decimal, str, XLine]]:
@@ -307,6 +324,10 @@ def datev_rows(entry: XEntry, personal: dict[str, str] | None = None) -> list[Da
     (DATEV applies the BU-Schlüssel to the Gegenkonto). ``personal`` maps collective
     receivable/payable account codes to the entry partner's personal account."""
     personal = personal or {}
+    skonto = Decimal(0)
+    if any(ln.account in SKONTO_ACCOUNTS for ln in entry.lines):
+        skonto = sum((abs(ln.debit - ln.credit) for ln in entry.lines if ln.account in SKONTO_ACCOUNTS), Decimal(0))
+        entry = replace(entry, lines=[ln for ln in entry.lines if ln.account not in SKONTO_ACCOUNTS])
     legs = [(personal.get(a, a), v, bu, ln) for a, v, bu, ln in _fold_tax(entry.lines)]
     debits = [[a, v, bu, ln] for a, v, bu, ln in legs if v > 0]
     credits = [[a, -v, bu, ln] for a, v, bu, ln in legs if v < 0]
@@ -329,6 +350,8 @@ def datev_rows(entry: XEntry, personal: dict[str, str] | None = None) -> list[Da
         c[1] -= amt
         i += d[1] == 0
         j += c[1] == 0
+    if rows and skonto:
+        rows[0].skonto = skonto
     return rows
 
 
@@ -377,9 +400,16 @@ def datev_booking_csv(
             personal = {code: str(partner_accounts[e.partner_id]) for code in collective_accounts if code}
         vat = re.sub(r"\s", "", e.partner_vat.upper())
         eu_vat = vat if re.match(r"^[A-Z]{2}[0-9A-Z]+$", vat) and vat[:2] in EU_VAT_PREFIXES and vat[:2] != home else ""
-        for r in datev_rows(e, personal):
+        for k, r in enumerate(datev_rows(e, personal)):
+            fx = e.fx_currency and e.fx_amount > 0 and k == 0 and r.amount > 0
             row = {
-                "Umsatz (ohne Soll/Haben-Kz)": _amt(r.amount), "Soll/Haben-Kennzeichen": r.sh, "WKZ Umsatz": currency,
+                "Umsatz (ohne Soll/Haben-Kz)": _amt(e.fx_amount if fx else r.amount), "Soll/Haben-Kennzeichen": r.sh,
+                "WKZ Umsatz": e.fx_currency if fx else currency,
+                "Kurs": f"{e.fx_amount / r.amount:.6f}".replace(".", ",") if fx else "",
+                "Basis-Umsatz": _amt(r.amount) if fx else "", "WKZ Basis-Umsatz": currency if fx else "",
+                "Skonto": _amt(r.skonto) if r.skonto else "",
+                "Belegfeld 2": _dmy2(e.due_date) if personal else "",
+                "Beleglink": f'BEDI "{e.doc_id}"' if e.doc_id else "",
                 "Konto": _pad(r.konto, n), "Gegenkonto (ohne BU-Schlüssel)": _pad(r.gegenkonto, n),
                 "BU-Schlüssel": r.bu,
                 "Belegdatum": r.belegdatum.strftime("%d%m"),  # TTMM; year comes from the header range
@@ -626,7 +656,7 @@ async def collect(session: Any, tenant_id: str, date_from: date, date_to: date) 
     for x, (e, _p) in zip(entries, rows, strict=True):
         info = partners.get((e.source_type or "", e.source_id or ""))
         if info:
-            x.partner_id, x.due_date, x.service_date, x.partner_vat = info
+            x.partner_id, x.due_date, x.service_date, x.partner_vat, x.doc_id, x.fx_currency, x.fx_amount = info
     from datetime import timedelta
 
     before = await svc._sums(date_from=None, date_to=date_from - timedelta(days=1))
@@ -668,17 +698,20 @@ async def _entry_partners(session: Any, sources: list[tuple[str | None, str | No
     res: dict[tuple[str, str], tuple] = {}
     sdocs = ids("sales_invoice", "sales_credit_note")
     spays = ids("sales_payment")
+    pay_map: dict[Any, Any] = {}
+    pay_fx: dict[Any, Decimal] = {}  # payment id -> amount in document currency, only for foreign payments
     if spays:
-        pay_map = dict(
-            (
-                await session.execute(
-                    select(SalesPayment.id, SalesPayment.invoice_id).where(SalesPayment.id.in_(spays))
+        for pid, did, amt, rate in (
+            await session.execute(
+                select(SalesPayment.id, SalesPayment.invoice_id, SalesPayment.amount, SalesPayment.fx_rate).where(
+                    SalesPayment.id.in_(spays)
                 )
-            ).all()
-        )
+            )
+        ).all():
+            pay_map[pid] = did
+            if rate is not None:
+                pay_fx[pid] = amt
         sdocs |= set(pay_map.values())
-    else:
-        pay_map = {}
     docs = {}
     if sdocs:
         docs = {
@@ -686,23 +719,33 @@ async def _entry_partners(session: Any, sources: list[tuple[str | None, str | No
         }
     for did, d in docs.items():
         if d.customer_id:
-            info = (str(d.customer_id), d.due_date, d.delivery_end or d.delivery_date, d.customer_vat_id or "")
+            info = (
+                str(d.customer_id), d.due_date, d.delivery_end or d.delivery_date, d.customer_vat_id or "",
+                str(did), "", Decimal(0),
+            )  # fmt: skip
             res[("sales_invoice", str(did))] = res[("sales_credit_note", str(did))] = info
     for pid, did in pay_map.items():
         d = docs.get(did)
         if d and d.customer_id:
-            res[("sales_payment", str(pid))] = (str(d.customer_id), None, None, d.customer_vat_id or "")
+            fx = pay_fx.get(pid)
+            res[("sales_payment", str(pid))] = (
+                str(d.customer_id), None, None, d.customer_vat_id or "", "", d.currency if fx else "", fx or Decimal(0)
+            )  # fmt: skip
     bdocs = ids("purchasing_bill", "purchasing_credit_note")
     bpays = ids("purchasing_payment")
-    bpay_map = {}
+    bpay_map: dict[Any, Any] = {}
+    bpay_fx: dict[Any, Decimal] = {}
     if bpays:
-        bpay_map = dict(
-            (
-                await session.execute(
-                    select(PurchasingPayment.id, PurchasingPayment.bill_id).where(PurchasingPayment.id.in_(bpays))
-                )
-            ).all()
-        )
+        for pid, bid, amt, rate in (
+            await session.execute(
+                select(
+                    PurchasingPayment.id, PurchasingPayment.bill_id, PurchasingPayment.amount, PurchasingPayment.fx_rate
+                ).where(PurchasingPayment.id.in_(bpays))
+            )
+        ).all():
+            bpay_map[pid] = bid
+            if rate is not None:
+                bpay_fx[pid] = amt
         bdocs |= set(bpay_map.values())
     bills = {}
     if bdocs:
@@ -712,12 +755,15 @@ async def _entry_partners(session: Any, sources: list[tuple[str | None, str | No
         }
     for bid, b in bills.items():
         if b.supplier_id:
-            info = (str(b.supplier_id), b.due_date, None, "")
+            info = (str(b.supplier_id), b.due_date, None, "", str(bid), "", Decimal(0))
             res[("purchasing_bill", str(bid))] = res[("purchasing_credit_note", str(bid))] = info
     for pid, bid in bpay_map.items():
         b = bills.get(bid)
         if b and b.supplier_id:
-            res[("purchasing_payment", str(pid))] = (str(b.supplier_id), None, None, "")
+            fx = bpay_fx.get(pid)
+            res[("purchasing_payment", str(pid))] = (
+                str(b.supplier_id), None, None, "", "", b.currency if fx else "", fx or Decimal(0)
+            )  # fmt: skip
     return res
 
 
