@@ -30,6 +30,12 @@ export const emptyLine = (taxRate = '0'): SalesLine => ({
   tax_rate: taxRate,
 });
 
+/** API decimals arrive zero-padded (3.000); keep what the user would type. */
+const plainDec = (v: unknown): string => {
+  const s = String(v);
+  return /^-?\d+\.\d+$/.test(s) ? s.replace(/\.?0+$/, '') : s;
+};
+
 export const toForm = (d?: SalesDoc, currency = 'EUR', taxRate = '0'): SalesForm => ({
   customer_id: d?.customer_id ?? '',
   customer_name: d?.customer_name ?? '',
@@ -49,9 +55,9 @@ export const toForm = (d?: SalesDoc, currency = 'EUR', taxRate = '0'): SalesForm
   lines:
     d?.lines.map((l) => ({
       ...l,
-      qty: String(l.qty),
-      unit_price: String(l.unit_price),
-      discount_pct: String(l.discount_pct),
+      qty: plainDec(l.qty),
+      unit_price: plainDec(l.unit_price),
+      discount_pct: plainDec(l.discount_pct),
       tax_rate: String(l.tax_rate),
     })) ?? [emptyLine(taxRate)],
 });
