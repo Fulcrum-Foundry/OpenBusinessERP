@@ -244,3 +244,49 @@ async def test_collect_matches_journal(monkeypatch):
         tb = await svc.trial_balance(date(2026, 3, 1), date(2026, 3, 31))
         assert sum(a.closing for a in col["accounts"]) == 0
         assert sum(ln.debit for ln in col["entries"][0].lines) == tb["total_debit"]
+
+
+def _rows(entries: list[gx.XEntry], **kw) -> list[dict[str, str]]:
+    raw = gx.datev_booking_csv(
+        entries, SETTINGS, date_from=date(2026, 3, 1), date_to=date(2026, 3, 31), fy_start=date(2026, 1, 1),
+        created=NOW, **kw,
+    )  # fmt: skip
+    lines = raw.decode("cp1252").split("\r\n")[:-1]
+    return [dict(zip(gx.BOOKING_COLUMNS, ln.split(";"), strict=True)) for ln in lines[2:]]
+
+
+def test_datev_foreign_payment_has_wkz_kurs_basis():
+    e = gx.XEntry(
+        "ZE-1", date(2026, 3, 9), "Zahlung", [gx.XLine("1200", debit=D("90.00")), gx.XLine("1400", credit=D("90.00"))],
+        fx_currency="USD", fx_amount=D("100.00"),
+    )  # fmt: skip
+    (r,) = _rows([e])
+    assert r["Umsatz (ohne Soll/Haben-Kz)"] == "100,00" and r["WKZ Umsatz"] == '"USD"'
+    assert r["Kurs"] == "1,111111" and r["Basis-Umsatz"] == "90,00" and r["WKZ Basis-Umsatz"] == '"EUR"'
+
+
+def test_datev_base_currency_rows_have_no_fx_columns():
+    for r in _rows(_entries()):
+        assert r["Kurs"] == r["Basis-Umsatz"] == "" and r["WKZ Basis-Umsatz"] == '""'
+
+
+def test_datev_skonto_from_payment_discount_line():
+    e = gx.XEntry(
+        "ZE-2", date(2026, 3, 9), "Zahlung mit Skonto",
+        [gx.XLine("1200", debit=D("97.00")), gx.XLine("8736", debit=D("3.00")), gx.XLine("1400", credit=D("100.00"))],
+    )  # fmt: skip
+    (r,) = _rows([e])
+    assert r["Umsatz (ohne Soll/Haben-Kz)"] == "97,00" and r["Skonto"] == "3,00"
+    assert sum(r.amount for r in gx.datev_rows(e)) == D("97.00")
+
+
+def test_datev_beleglink_and_belegfeld2():
+    e = gx.XEntry(
+        "RE-9", date(2026, 3, 5), "Rechnung", [gx.XLine("1400", debit=D("100")), gx.XLine("8000", credit=D("100"))],
+        partner_id="c1", due_date=date(2026, 4, 4), doc_id="5f0c1c64-0000-4000-8000-000000000001",
+    )  # fmt: skip
+    (r,) = _rows([e], partner_accounts={"c1": 10001}, collective_accounts=("1400",))
+    assert r["Beleglink"] == '"BEDI ""5f0c1c64-0000-4000-8000-000000000001"""'
+    assert r["Belegfeld 2"] == '"040426"' and r["Fälligkeit"] == "04042026"
+    (plain,) = _rows([gx.XEntry("X", date(2026, 3, 5), "m", e.lines, due_date=e.due_date)])
+    assert plain["Beleglink"] == plain["Belegfeld 2"] == '""'
