@@ -175,3 +175,54 @@ async def test_test_connection_reports_refusal_without_secret(calls):
     with pytest.raises(op.PaymentProviderError) as exc:
         await prov.test()
     assert "401" in str(exc.value) and "sk_test_secret" not in str(exc.value)
+
+
+def _fee_event(fee: int, cur="eur", expanded="direct") -> dict:
+    ev = _event()
+    bt = {"fee": fee, "currency": cur}
+    obj = ev["data"]["object"]
+    if expanded == "direct":
+        obj["balance_transaction"] = bt
+    else:
+        obj["payment_intent"] = {"latest_charge": {"balance_transaction": bt}}
+    return ev
+
+
+def test_stripe_fee_parsed_only_when_expanded():
+    assert op.StripeProvider.payment_from_event(_event()).fee == 0
+    p = op.StripeProvider.payment_from_event(_fee_event(173))
+    assert p.fee == D("1.73") and p.fee_currency == "EUR"
+    assert op.StripeProvider.payment_from_event(_fee_event(173, expanded="pi")).fee == D("1.73")
+
+
+async def _fee_setup(session, calls, event):
+    ps.write_payment_settings(
+        {"provider": "stripe", "stripe_secret_key": "sk_test_abc", "stripe_webhook_secret": WHSEC,
+         "public_base_url": "https://erp.example.com"}
+    )  # fmt: skip
+    gl, sales, inv = await _invoice(session)
+    await op.ensure_link(session, inv)
+    return gl, op.StripeProvider.payment_from_event(event)
+
+
+async def test_fee_booked_once_to_4970_from_1360(session, calls):
+    gl, paid = await _fee_setup(session, calls, _fee_event(173))
+    assert await op.settle(session, "stripe", paid) == "recorded"
+    assert await op.settle(session, "stripe", paid) == "duplicate"
+    tb = await gl.trial_balance(None, None)
+    bal = {r["code"]: r["closing"] for r in tb["rows"]}
+    assert tb["balanced"] and bal["4970"] == D("1.73") and bal["1360"] == D("119.00") - D("1.73")
+
+
+async def test_no_fee_no_entry(session, calls):
+    gl, paid = await _fee_setup(session, calls, _event())
+    await op.settle(session, "stripe", paid)
+    bal = {r["code"]: r["closing"] for r in (await gl.trial_balance(None, None))["rows"]}
+    assert bal.get("4970", D(0)) == 0
+
+
+async def test_foreign_currency_fee_not_booked(session, calls):
+    gl, paid = await _fee_setup(session, calls, _fee_event(200, cur="usd"))
+    assert await op.settle(session, "stripe", paid) == "recorded"
+    bal = {r["code"]: r["closing"] for r in (await gl.trial_balance(None, None))["rows"]}
+    assert bal.get("4970", D(0)) == 0

@@ -77,6 +77,11 @@ class ProviderPayment:
     paid: bool
     amount: Decimal
     currency: str
+    fee: Decimal = Decimal(0)  # provider fee, only when the webhook/payment object reports it
+    fee_currency: str = ""
+
+
+FEE_ACCOUNTS = {"de_skr03": "4970", "de_skr04": "6855"}  # Nebenkosten des Geldverkehrs
 
 
 def _places(currency: str) -> int:
@@ -106,6 +111,17 @@ async def _request(method: str, url: str, **kw: Any) -> dict[str, Any]:
         detail = err.get("message") or data.get("detail") or data.get("title") or ""
         raise PaymentProviderError(f"Provider refused the request (HTTP {resp.status_code}) {detail}".strip()[:300])
     return data
+
+
+def _balance_transaction(obj: dict[str, Any]) -> dict[str, Any]:
+    """Expanded balance transaction of a Stripe object, directly or via payment_intent.latest_charge."""
+    pi = obj.get("payment_intent")
+    charge = pi.get("latest_charge") if isinstance(pi, dict) else None
+    for src in (obj, charge if isinstance(charge, dict) else {}):
+        bt = src.get("balance_transaction")
+        if isinstance(bt, dict):
+            return bt
+    return {}
 
 
 class StripeProvider:
@@ -171,11 +187,17 @@ class StripeProvider:
             return None
         obj = (event.get("data") or {}).get("object") or {}
         currency = str(obj.get("currency") or "").upper()
+        # Fee only if the event carries an expanded balance transaction (not part of the default payload).
+        bt = _balance_transaction(obj)
+        fee_cur = str(bt.get("currency") or "").upper()
+        fee = from_minor(int(bt.get("fee") or 0), fee_cur) if fee_cur else Decimal(0)
         return ProviderPayment(
             provider_ref=str(obj.get("id") or ""),
             paid=obj.get("payment_status") == "paid",
             amount=from_minor(int(obj.get("amount_total") or 0), currency),
             currency=currency,
+            fee=fee,
+            fee_currency=fee_cur,
         )
 
 
@@ -289,6 +311,44 @@ async def _clearing_account(session: AsyncSession, svc: Any, code: str) -> uuid.
     return (await svc._accounts("bank"))["bank"]
 
 
+async def _fee_account(session: AsyncSession, tenant: str) -> uuid.UUID | None:
+    tpl = await session.scalar(
+        select(GLAccount.template).where(GLAccount.tenant_id == tenant, GLAccount.template.is_not(None)).limit(1)
+    )
+    code = FEE_ACCOUNTS.get(tpl or "")
+    if not code:
+        return None
+    return await session.scalar(select(GLAccount.id).where(GLAccount.tenant_id == tenant, GLAccount.code == code))
+
+
+async def _post_fee(
+    session: AsyncSession, svc: Any, link: SalesPaymentLink, paid: ProviderPayment, clearing: uuid.UUID, pay_date: date
+) -> None:
+    """Dr fees (SKR03 4970 / SKR04 6855) / Cr clearing. Runs inside the settle claim, so at most once per link."""
+    from app.modules.gl.service import LineInput, base_currency
+
+    if paid.fee <= 0:
+        return
+    if paid.fee_currency != base_currency():
+        logger.warning("fee of payment link %s is in %s, not the base currency; not booked", link.id, paid.fee_currency)
+        return
+    fees = await _fee_account(session, svc.tenant_id)
+    if fees is None:
+        logger.warning("no provider fee account in the chart; fee of payment link %s not booked", link.id)
+        return
+    await svc.gl.create_entry(
+        entry_date=pay_date,
+        lines=[
+            LineInput(fees, debit=paid.fee, description=f"{link.provider} fee"),
+            LineInput(clearing, credit=paid.fee, description=f"{link.provider} fee"),
+        ],
+        memo=f"{link.provider} fee {paid.provider_ref}",
+        source_type="sales_payment_fee",
+        source_id=str(link.id),
+        post=True,
+    )
+
+
 async def settle(session: AsyncSession, provider_name: str, paid: ProviderPayment) -> str:
     """Book a confirmed provider payment once. Returns an outcome tag for the webhook response."""
     from app.modules.sales.service import SalesService
@@ -338,6 +398,7 @@ async def settle(session: AsyncSession, provider_name: str, paid: ProviderPaymen
     link.status = "paid"
     link.paid_amount = paid.amount
     link.payment_id = pay.id if pay is not None else None
+    await _post_fee(session, svc, link, paid, account, date.today())
     await session.flush()
     if paid.amount > amount:
         logger.warning("payment link %s overpaid by %s; excess not applied", link.id, paid.amount - amount)
