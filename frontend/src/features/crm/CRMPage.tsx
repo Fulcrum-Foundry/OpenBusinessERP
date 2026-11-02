@@ -2999,6 +2999,7 @@ function CreateModal({
       title={title}
       size={kind === 'deal' ? 'xl' : 'lg'}
       busy={busy}
+      onSubmit={submit}
       footer={
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>

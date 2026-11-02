@@ -109,7 +109,12 @@ export function PaymentModal({
   if (!open) return null;
 
   return (
-    <WideModal open={open} title={t('finance.payment.recordTitle')} onClose={onClose}>
+    <WideModal
+      open={open}
+      title={t('finance.payment.recordTitle')}
+      onClose={onClose}
+      onSubmit={() => { if (!pay.isPending && breakdown !== null) pay.mutate(); }}
+    >
       <WideModalSection title={t('finance.payment.detailsSection')}>
         <WideModalField label={t('finance.payment.date')}>
           <DateField className={dateInputCls} value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />

@@ -1380,6 +1380,7 @@ function BudgetsTab({ projectId }: { projectId: string }) {
       }
       size="lg"
       busy={budgetMutPending}
+      onSubmit={() => { if (!budgetMutPending && canSubmitBudget) submitBudget(); }}
       footer={
         <>
           <Button variant="ghost" onClick={closeBudgetModal} disabled={budgetMutPending}>
@@ -2979,6 +2980,14 @@ export function InvoicesTab({ projectId }: { projectId: string }) {
           }
           size="xl"
           busy={isEditingInvoice ? updateInvoiceMut.isPending : createInvoiceMut.isPending}
+          onSubmit={() => {
+            if (!canSubmitInvoice || !validateInvoice()) return;
+            if (isEditingInvoice && editingInvoice) {
+              updateInvoiceMut.mutate({ id: editingInvoice.id, form: invoiceForm, prevStatus: editingInvoice.status });
+            } else {
+              createInvoiceMut.mutate(invoiceForm);
+            }
+          }}
           footer={
             <>
               <Button

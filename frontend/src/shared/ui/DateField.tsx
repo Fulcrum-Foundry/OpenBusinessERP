@@ -42,6 +42,14 @@ export function datePatternFor(locale: string, pref: DateFormat = 'auto'): DateP
   return { order: order.length === 3 ? order : ['day', 'month', 'year'], sep: lit.charAt(0) || '.' };
 }
 
+const PATTERN_TOKENS: Record<string, [string, string, string]> = {
+  de: ['TT', 'MM', 'JJJJ'], fr: ['jj', 'mm', 'aaaa'], es: ['dd', 'mm', 'aaaa'], it: ['gg', 'mm', 'aaaa'],
+  pt: ['dd', 'mm', 'aaaa'], nl: ['dd', 'mm', 'jjjj'], ru: ['дд', 'мм', 'гггг'], uk: ['дд', 'мм', 'рррр'],
+  bg: ['дд', 'мм', 'гггг'], pl: ['dd', 'mm', 'rrrr'], cs: ['dd', 'mm', 'rrrr'], sv: ['dd', 'mm', 'åååå'],
+  da: ['dd', 'mm', 'åååå'], no: ['dd', 'mm', 'åååå'], fi: ['pp', 'kk', 'vvvv'], tr: ['gg', 'aa', 'yyyy'],
+  hu: ['nn', 'hh', 'éééé'], ro: ['zz', 'll', 'aaaa'], hr: ['dd', 'mm', 'gggg'], et: ['pp', 'kk', 'aaaa'],
+};
+
 const pad = (n: number, w = 2) => String(n).padStart(w, '0');
 const isoOf = (y: number, m: number, d: number) => `${pad(y, 4)}-${pad(m)}-${pad(d)}`;
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -118,7 +126,7 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(function D
   { value, onChange, min, max, className, disabled, readOnly, name, id, onBlur, onKeyDown, ...rest },
   ref,
 ) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = useIntlLocale();
   const pref = usePreferencesStore((s) => s.dateFormat);
   const pattern = useMemo(() => datePatternFor(locale, pref), [locale, pref]);
@@ -135,9 +143,10 @@ export const DateField = forwardRef<HTMLInputElement, DateFieldProps>(function D
   }, [iso, pattern]);
 
   const placeholder = useMemo(() => {
-    const ph: Record<Field, string> = { day: 'dd', month: 'mm', year: 'yyyy' };
+    const tk = PATTERN_TOKENS[(i18n.language || 'en').slice(0, 2).toLowerCase()] ?? ['dd', 'mm', 'yyyy'];
+    const ph: Record<Field, string> = { day: tk[0], month: tk[1], year: tk[2] };
     return pattern.order.map((f) => ph[f]).join(pattern.sep);
-  }, [pattern]);
+  }, [pattern, i18n.language]);
 
   const inRange = (v: string) => (!min || v >= min) && (!max || v <= max);
 
