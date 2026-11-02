@@ -56,8 +56,19 @@ to the title shows **Test mode** or **Live mode**, based on the key prefix.
 
 ## Fees and payouts
 
-Provider fees are not booked by the webhook. Book them when you reconcile the
-provider payout on the bank statement:
+When the webhook reports the provider fee, it is booked together with the payment:
+*Dr fees / Cr clearing account*, with fees on `4970 Nebenkosten des Geldverkehrs`
+(SKR03) or `6855` (SKR04). The entry is made inside the same claim as the payment,
+so retries never book it twice. The clearing account then holds the net amount.
+
+- **Stripe** reports the fee only when the event carries an expanded balance
+  transaction (`balance_transaction.fee`, or `payment_intent.latest_charge.balance_transaction`).
+  The default `checkout.session.completed` payload does not, so no fee is booked.
+- **Mollie** payments do not carry the fee, so none is booked.
+- A fee in a currency other than the base currency, or a chart without the fees
+  account, is logged and not booked.
+
+Fees that were not booked automatically are booked when you reconcile the payout:
 
 - *Dr bank / Cr clearing* for the net payout
 - *Dr fees / Cr clearing* for the difference
