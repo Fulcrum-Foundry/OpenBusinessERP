@@ -465,6 +465,7 @@ jobs:
           fi
 
       - name: Publish to PyPI (Trusted Publishing)
+        continue-on-error: true  # PyPI project/trusted publisher not configured yet
         if: steps.pubmode.outputs.has_token == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
@@ -472,6 +473,7 @@ jobs:
           verbose: true
 
       - name: Publish to PyPI (API token fallback)
+        continue-on-error: true  # PyPI project/trusted publisher not configured yet
         if: steps.pubmode.outputs.has_token == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

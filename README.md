@@ -10,7 +10,7 @@
   <a href="https://github.com/datadrivenconstruction/OpenBusinessERP/actions/workflows/ci.yml"><img src="https://github.com/datadrivenconstruction/OpenBusinessERP/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/datadrivenconstruction/OpenBusinessERP/actions/workflows/codeql.yml"><img src="https://github.com/datadrivenconstruction/OpenBusinessERP/actions/workflows/codeql.yml/badge.svg?branch=main" alt="CodeQL"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
-  <img src="https://img.shields.io/badge/version-18.4.0-2563eb.svg" alt="Version 18.4.0">
+  <img src="https://img.shields.io/badge/version-18.5.0-2563eb.svg" alt="Version 18.5.0">
   <img src="https://img.shields.io/badge/python-3.12%2B-3776ab.svg" alt="Python 3.12+">
   <img src="https://img.shields.io/badge/backend-FastAPI-009688.svg" alt="FastAPI">
   <img src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-61dafb.svg" alt="React + TypeScript">

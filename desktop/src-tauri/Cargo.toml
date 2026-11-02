@@ -1,6 +1,6 @@
 [package]
 name = "openbusinesserp-desktop"
-version = "18.4.0"
+version = "18.5.0"
 description = "OpenBusinessERP Desktop, open-source ERP for small businesses"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/datadrivenconstruction/OpenBusinessERP"
