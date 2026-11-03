@@ -39,6 +39,7 @@ DATEV:
 - Receivables and payables are booked on the summary accounts (SKR03 1400 and 1600), not on personal accounts per customer or supplier. Your adviser may need to split them using the Debitoren/Kreditoren file.
 - An entry with several lines is split into pairs of rows with the same document field.
 - VAT lines on the SKR03 tax accounts 1571, 1576, 1771 and 1776 are folded into the net line, which then carries the gross amount. Net accounts that are automatic accounts (3300, 3400, 8300, 8400) get no tax key. Other accounts get the classic two-digit key. VAT lines that cannot be matched stay as separate rows.
+- On SKR03, invoices and bills post per VAT rate: 19 % to 8400/1776 (purchases 3400/1576), 7 % to 8300/1771 (purchases 3300/1571). A 0 % invoice line goes to 8337 when the tax note names reverse charge or § 13b, to 8125 for an intra-community supply, to 8195 for a small business under § 19 UStG, and to 8100 otherwise. Bills that clear a goods receipt keep the expense on the receipt account; only their input VAT is split.
 - The file is encoded in Windows-1252, as DATEV expects.
 - The program ships an SKR03 chart and an IFRS-style chart. It has no SKR04 chart. If your adviser works with SKR04, the account numbers in the file will not match.
 

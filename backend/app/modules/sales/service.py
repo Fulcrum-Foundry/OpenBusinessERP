@@ -15,6 +15,7 @@ from app.core.business_settings import read_business_settings
 from app.modules.gl.fx_posting import FxRateMissingError, q_rate, rate_for, settlement, settlement_lines
 from app.modules.gl.models import DEFAULT_TENANT, GLAccount, GLJournalEntry
 from app.modules.gl.service import GLError, GLService, LineInput, base_currency
+from app.modules.gl.templates import SALES_RATE_ACCOUNTS, ZERO_RATE_REVENUE, zero_rate_kind
 from app.modules.sales.models import (
     KINDS,
     SalesAccountMap,
@@ -858,6 +859,49 @@ class SalesService:
             out[role] = acc.id
         return out
 
+    async def _chart_template(self) -> str | None:
+        return await self.session.scalar(
+            select(GLAccount.template)
+            .where(GLAccount.tenant_id == self.tenant_id, GLAccount.template.is_not(None))
+            .limit(1)
+        )
+
+    async def _revenue_lines(self, doc: SalesDocument, acc: dict[str, uuid.UUID], *, side: str) -> list[LineInput]:
+        """Revenue and output-VAT lines split by VAT rate, so 7 %, 0 % and mixed invoices reach the right accounts."""
+        tpl = await self._chart_template() or ""
+        defaults = DEFAULT_ACCOUNTS.get(tpl, {})
+        rate_map = SALES_RATE_ACCOUNTS.get(tpl, {})
+        zero_map = ZERO_RATE_REVENUE.get(tpl, {})
+        ids: dict[str, uuid.UUID | None] = {}
+
+        async def by_code(code: str) -> uuid.UUID | None:
+            if code not in ids:
+                ids[code] = await self.session.scalar(
+                    select(GLAccount.id).where(GLAccount.tenant_id == self.tenant_id, GLAccount.code == code)
+                )
+            return ids[code]
+
+        net: dict[uuid.UUID, Decimal] = {}
+        vat: dict[uuid.UUID, Decimal] = {}
+        for ln in doc.lines:
+            rate = Decimal(ln.tax_rate or 0)
+            rev_id, vat_id = acc["revenue"], acc["vat"]
+            pair = rate_map.get(rate)
+            # The chart's standard pair stays on the roles, so a mapping override still applies.
+            if pair and pair != (defaults.get("revenue"), defaults.get("vat")):
+                r, v = await by_code(pair[0]), await by_code(pair[1])
+                if r and v:
+                    rev_id, vat_id = r, v
+            elif rate == 0 and zero_map:
+                rev_id = await by_code(zero_map[zero_rate_kind(doc.tax_note)]) or rev_id
+            net[rev_id] = net.get(rev_id, ZERO) + ln.net
+            if ln.tax:
+                vat[vat_id] = vat.get(vat_id, ZERO) + ln.tax
+        key = "credit" if side == "credit" else "debit"
+        out = [LineInput(a, **{key: amt}, description=doc.number) for a, amt in net.items() if amt]
+        out += [LineInput(a, **{key: amt}, description=f"{doc.number} VAT") for a, amt in vat.items() if amt > 0]
+        return out
+
     async def issue_invoice(self, invoice_id: uuid.UUID, created_by: str | None = None) -> SalesDocument:
         inv = await self.get(invoice_id, "invoice")
         check_transition("invoice", inv.status, "issued")
@@ -871,10 +915,8 @@ class SalesService:
             LineInput(
                 acc["receivable"], debit=inv.gross_total, description=f"{inv.number} {inv.customer_name}".strip()
             ),
-            LineInput(acc["revenue"], credit=inv.net_total, description=inv.number),
+            *await self._revenue_lines(inv, acc, side="credit"),
         ]
-        if inv.tax_total > 0:
-            lines.append(LineInput(acc["vat"], credit=inv.tax_total, description=f"{inv.number} VAT"))
         entry = await self._gl(
             self.gl.create_entry(
                 entry_date=inv.doc_date,
@@ -913,9 +955,7 @@ class SalesService:
                     f"Credit exceeds invoice {inv.number}: {inv.gross_total - credited} left to credit"
                 )
         acc = await self._accounts("receivable", "revenue", "vat")
-        lines = [LineInput(acc["revenue"], debit=cn.net_total, description=cn.number)]
-        if cn.tax_total > 0:
-            lines.append(LineInput(acc["vat"], debit=cn.tax_total, description=f"{cn.number} VAT"))
+        lines = await self._revenue_lines(cn, acc, side="debit")
         lines.append(
             LineInput(acc["receivable"], credit=cn.gross_total, description=f"{cn.number} {cn.customer_name}".strip())
         )
@@ -1138,9 +1178,4 @@ class SalesService:
         return ranked(cust), ranked(items)
 
     async def _is_skr03(self) -> bool:
-        tpl = await self.session.scalar(
-            select(GLAccount.template)
-            .where(GLAccount.tenant_id == self.tenant_id, GLAccount.template.is_not(None))
-            .limit(1)
-        )
-        return tpl == "de_skr03"
+        return await self._chart_template() == "de_skr03"

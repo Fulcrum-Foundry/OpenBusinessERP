@@ -183,8 +183,9 @@ async def test_credit_note_posts_proportional_reversal(svc):
     tb = await _closing_by_code(svc)
     assert sum(tb.values()) == 0
     assert tb["1400"] == inv.gross_total - cn.gross_total
-    assert tb["8400"] == -(inv.net_total - cn.net_total)
-    assert tb["1776"] + tb.get("1771", 0) == -(inv.tax_total - cn.tax_total)
+    # Consulting (19 %) is fully credited; the widget (7 %) stays on 8300/1771.
+    assert (tb["8400"], tb["1776"]) == (0, 0)
+    assert (tb["8300"], tb["1771"]) == (D("-49.98"), D("-3.50"))
     assert inv.status == "partially_paid" and inv.gross_total - inv.amount_paid == D("53.48")
     # Remaining open amount can be credited, but not more.
     cn2 = await svc.invoice_to_credit_note(inv.id)
@@ -194,4 +195,29 @@ async def test_credit_note_posts_proportional_reversal(svc):
     await svc.set_status(cn2.id, "issued")
     assert inv.status == "paid"
     tb = await _closing_by_code(svc)
-    assert sum(tb.values()) == 0 and tb["1400"] == 0 and tb["8400"] == 0
+    assert sum(tb.values()) == 0 and tb["1400"] == 0 and tb["8400"] == 0 and tb["8300"] == 0
+
+
+async def test_zero_rate_revenue_follows_the_tax_note(svc):
+    """0 % lines go to 8337 (§ 13b), 8125 (intra-EU), 8195 (§ 19) or 8100 (exempt); never to the 19 % Automatikkonto 8400."""
+    line = LineData("Montage", "M-1", D("1"), D("1000"), D("0"), D("0"))
+    for note, code in (
+        ("Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG)", "8337"),
+        ("Steuerfreie innergemeinschaftliche Lieferung", "8125"),
+        ("VAT exempt (§ 19 UStG)", "8195"),
+        ("Steuerfrei nach § 4 Nr. 8 UStG", "8100"),
+    ):
+        inv = await svc.create("invoice", lines=[line], doc_date=DAY, customer_name="Bau GmbH", tax_note=note)
+        await svc.issue_invoice(inv.id)
+        tb = await _closing_by_code(svc)
+        assert tb[code] == D("-1000.00"), note
+    assert tb.get("8400", 0) == 0 and tb.get("1776", 0) == 0
+
+
+async def test_mixed_rate_invoice_splits_revenue_and_vat(svc):
+    inv = await svc.create("invoice", lines=LINES, doc_date=DAY, customer_name="ACME")
+    await svc.issue_invoice(inv.id)
+    tb = await _closing_by_code(svc)
+    assert (tb["8400"], tb["1776"]) == (D("-90.00"), D("-17.10"))
+    assert (tb["8300"], tb["1771"]) == (D("-49.98"), D("-3.50"))
+    assert tb["1400"] == inv.gross_total

@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 A, L, E, I, X = "asset", "liability", "equity", "income", "expense"
 
 IFRS_GENERIC: list[tuple[str, str, str, str | None, bool]] = [
@@ -114,6 +116,7 @@ DE_SKR03: list[tuple[str, str, str, str | None, bool]] = [
     # Erlöse / Erträge
     ("8100", "Steuerfreie Umsätze § 4 Nr. 8 ff. UStG", I, None, True),
     ("8125", "Steuerfreie innergemeinschaftliche Lieferungen", I, None, True),
+    ("8195", "Erlöse als Kleinunternehmer i.S.d. § 19 Abs. 1 UStG", I, None, True),
     ("8200", "Erlöse", I, None, True),
     ("8300", "Erlöse 7 % USt", I, None, True),
     ("8400", "Erlöse 19 % USt", I, None, True),
@@ -159,6 +162,38 @@ DE_SKR03: list[tuple[str, str, str, str | None, bool]] = [
     ("4970", "Nebenkosten des Geldverkehrs", X, None, True),
     ("4985", "Werkzeuge und Kleingeräte", X, None, True),
 ]
+
+# Sales accounts by VAT rate: rate -> (revenue, output VAT). Other rates post to the 'revenue'/'vat' roles.
+SALES_RATE_ACCOUNTS: dict[str, dict[Decimal, tuple[str, str]]] = {
+    "de_skr03": {Decimal(19): ("8400", "1776"), Decimal(7): ("8300", "1771")},
+}
+# Purchase accounts by VAT rate: rate -> (expense, input VAT); expense applies to bills without a goods receipt.
+PURCHASE_RATE_ACCOUNTS: dict[str, dict[Decimal, tuple[str, str]]] = {
+    "de_skr03": {Decimal(19): ("3400", "1576"), Decimal(7): ("3300", "1571")},
+}
+# 0 % revenue by the invoice's tax treatment (see zero_rate_kind).
+ZERO_RATE_REVENUE: dict[str, dict[str, str]] = {
+    "de_skr03": {"reverse_charge": "8337", "intra_eu": "8125", "small_business": "8195", "exempt": "8100"},
+}
+
+_REVERSE = ("reverse charge", "13b", "steuerschuldnerschaft", "autoliquidation", "inversione contabile",
+            "inversión del sujeto pasivo", "verlegd", "odwrotne obciążenie")  # fmt: skip
+_SMALL_BUSINESS = ("19 ustg", "19 abs. 1 ustg", "kleinunternehmer")
+_INTRA_EU = ("innergemeinschaftlich", "intra-community", "intra-eu", "intracommunautaire",
+             "intracomunitari", "4 nr. 1 b", "4 nr. 1b", "art. 138")  # fmt: skip
+
+
+def zero_rate_kind(tax_note: str) -> str:
+    """Classify a 0 % invoice from its tax note: reverse_charge, intra_eu, small_business or exempt."""
+    note = " ".join((tax_note or "").lower().replace("§", " ").split())
+    if any(k in note for k in _REVERSE):
+        return "reverse_charge"
+    if any(k in note for k in _INTRA_EU):
+        return "intra_eu"
+    if any(k in note for k in _SMALL_BUSINESS):
+        return "small_business"
+    return "exempt"
+
 
 TEMPLATES: dict[str, list[tuple[str, str, str, str | None, bool]]] = {
     "ifrs_generic": IFRS_GENERIC,
