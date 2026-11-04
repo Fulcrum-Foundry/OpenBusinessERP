@@ -30,9 +30,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.platypus import (
     BaseDocTemplate,
+    Flowable,
     Frame,
     KeepTogether,
     PageTemplate,
@@ -403,12 +405,22 @@ def _qr_drawing(payload: str, size: float) -> Drawing:
     return d
 
 
+_QRB_KEYS = ("receipt", "payment_part", "account", "reference", "info", "payable_by", "payable_by_blank",
+             "currency", "amount", "acceptance")
 _QRB_LABELS = {
-    "de": ("Zahlteil", "Konto / Zahlbar an", "Referenz", "Zusätzliche Informationen", "Zahlbar durch", "Währung", "Betrag"),
-    "fr": ("Section paiement", "Compte / Payable à", "Référence", "Informations supplémentaires", "Payable par", "Monnaie", "Montant"),
-    "it": ("Sezione pagamento", "Conto / Pagabile a", "Riferimento", "Informazioni supplementari", "Pagabile da", "Valuta", "Importo"),
-    "en": ("Payment part", "Account / Payable to", "Reference", "Additional information", "Payable by", "Currency", "Amount"),
+    "de": ("Empfangsschein", "Zahlteil", "Konto / Zahlbar an", "Referenz", "Zusätzliche Informationen",
+           "Zahlbar durch", "Zahlbar durch (Name/Adresse)", "Währung", "Betrag", "Annahmestelle"),
+    "fr": ("Récépissé", "Section paiement", "Compte / Payable à", "Référence", "Informations supplémentaires",
+           "Payable par", "Payable par (nom/adresse)", "Monnaie", "Montant", "Point de dépôt"),
+    "it": ("Ricevuta", "Sezione pagamento", "Conto / Pagabile a", "Riferimento", "Informazioni supplementari",
+           "Pagabile da", "Pagabile da (nome/indirizzo)", "Valuta", "Importo", "Punto di accettazione"),
+    "en": ("Receipt", "Payment part", "Account / Payable to", "Reference", "Additional information",
+           "Payable by", "Payable by (name/address)", "Currency", "Amount", "Acceptance point"),
 }
+
+
+def qr_bill_labels(lg: str) -> dict[str, str]:
+    return dict(zip(_QRB_KEYS, _QRB_LABELS.get(lg, _QRB_LABELS["en"]), strict=True))
 
 
 def _swiss_qr_drawing(payload: str) -> Drawing:
@@ -463,27 +475,135 @@ def _addr_lines(a: qrbill.Address) -> list[str]:
     return [a.name, " ".join(x for x in (a.street, a.building) if x), f"{a.country}-{a.postcode} {a.town}"]
 
 
+def _fmt_qr_ref(ref_type: str, ref: str) -> str:
+    if ref_type == "QRR":
+        return " ".join([ref[:2], *(ref[i : i + 5] for i in range(2, 27, 5))])
+    return " ".join(ref[i : i + 4] for i in range(0, len(ref), 4))
+
+
+def _clip(text: str, face: str, size: float, width: float) -> str:
+    while text and stringWidth(text, face, size) > width:
+        text = text[:-1]
+    return text
+
+
+def _corners(c: Any, x: float, y: float, w: float, h: float) -> None:
+    """Blank-field corner marks (0.75 pt, 3 mm arms) for a field the payer fills in by hand."""
+    arm = 3 * mm
+    c.setLineWidth(0.75)
+    c.setDash()
+    for cx, cy, dx, dy in ((x, y, 1, 1), (x + w, y, -1, 1), (x, y + h, 1, -1), (x + w, y + h, -1, -1)):
+        c.line(cx, cy, cx + dx * arm, cy)
+        c.line(cx, cy, cx, cy + dy * arm)
+
+
+class _SwissSlip(Flowable):
+    """SIX QR-bill slip: 210 x 105 mm at the bottom of the page, receipt 62 mm + payment part 148 mm."""
+
+    SLIP_H = 105 * mm
+    frame_bottom = 0.0
+
+    def __init__(self, payload: str, fields: dict[str, Any], lg: str) -> None:
+        super().__init__()
+        self.payload, self.f, self.lb = payload, fields, qr_bill_labels(lg)
+
+    def wrap(self, availWidth: float, availHeight: float) -> tuple[float, float]:  # noqa: N803
+        need = self.SLIP_H + 3 * mm - self.frame_bottom
+        return availWidth, max(availHeight, need)
+
+    def split(self, availWidth: float, availHeight: float) -> list[Any]:  # noqa: N803
+        return []
+
+    def drawOn(self, canvas: Any, x: float, y: float, _sW: float = 0) -> None:  # noqa: N802,N803
+        # Placed by page coordinates, not by the frame: the slip always sits on the bottom edge.
+        canvas.saveState()
+        if getattr(canvas, "qr_slip_pages", None) is None:
+            canvas.qr_slip_pages = set()
+        canvas.qr_slip_pages.add(canvas.getPageNumber())
+        self._draw_slip(canvas)
+        canvas.restoreState()
+
+    def _draw_slip(self, c: Any) -> None:
+        f, lb, top = self.f, self.lb, self.SLIP_H
+        c.setStrokeColor(colors.black)
+        c.setFillColor(colors.black)
+        c.setLineWidth(0.5)
+        c.setDash(2, 2)
+        c.line(0, top, W, top)
+        c.line(62 * mm, 0, 62 * mm, top)
+        c.setDash()
+        c.setFont("ZapfDingbats", 9)
+        c.drawString(5 * mm, top - 1.3 * mm, chr(34))  # scissors glyph
+        c.saveState()
+        c.translate(62 * mm + 1.3 * mm, top - 5 * mm)
+        c.rotate(-90)
+        c.drawString(0, 0, chr(34))
+        c.restoreState()
+        creditor = [_iban_spaced(f["iban"]), *_addr_lines(f["creditor"])]
+        ref = _fmt_qr_ref(f["ref_type"], f["reference"]) if f["reference"] else ""
+        amount = f"{f['amount']:,.2f}".replace(",", " ") if f.get("amount") else ""
+        debtor = _addr_lines(f["debtor"]) if f.get("debtor") else []
+
+        def block(x: float, y: float, label: str, lines: list[str], ls: float, vs: float, width: float) -> float:
+            c.setFont("Helvetica-Bold", ls)
+            c.drawString(x, y, label)
+            y -= vs * 1.1
+            c.setFont("Helvetica", vs)
+            for line in lines:
+                c.drawString(x, y, _clip(line, "Helvetica", vs, width))
+                y -= vs * 1.1
+            return y - vs * 0.6
+
+        def amount_section(x: float, ya: float, ls: float, vs: float, gap: float, box: tuple[float, ...]) -> None:
+            c.setFont("Helvetica-Bold", ls)
+            c.drawString(x, ya - ls, lb["currency"])
+            c.drawString(x + gap, ya - ls, lb["amount"])
+            c.setFont("Helvetica", vs)
+            c.drawString(x, ya - ls - vs * 1.2, f["currency"])
+            if amount:
+                c.drawString(x + gap, ya - ls - vs * 1.2, amount)
+            else:
+                _corners(c, *box)
+
+        # Receipt: title 7 mm, information 56 mm, amount 14 mm, acceptance point 18 mm (5 mm margins).
+        x0, w0 = 5 * mm, 52 * mm
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(x0, top - 5 * mm - 11, lb["receipt"])
+        y = top - 12 * mm - 6
+        y = block(x0, y, lb["account"], creditor, 6, 8, w0)
+        if ref:
+            y = block(x0, y, lb["reference"], [ref], 6, 8, w0)
+        if debtor:
+            block(x0, y, lb["payable_by"], debtor, 6, 8, w0)
+        else:
+            block(x0, y, lb["payable_by_blank"], [], 6, 8, w0)
+            _corners(c, x0, y - 20 * mm + 4, 52 * mm, 20 * mm)
+        amount_section(x0, 37 * mm, 6, 8, 12 * mm, (x0 + 22 * mm, 37 * mm - 13 * mm, 30 * mm, 10 * mm))
+        c.setFont("Helvetica-Bold", 6)
+        c.drawRightString(57 * mm, 23 * mm - 6, lb["acceptance"])
+
+        # Payment part: title + QR column 51 mm wide, information column from 118 mm.
+        x1 = 67 * mm
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(x1, top - 5 * mm - 11, lb["payment_part"])
+        _swiss_qr_drawing(self.payload).drawOn(c, x1, top - 17 * mm - 46 * mm)
+        amount_section(x1, 37 * mm, 8, 10, 14 * mm, (x1 + 11 * mm, 37 * mm - 20 * mm, 40 * mm, 15 * mm))
+        x2, w2 = 118 * mm, 87 * mm
+        y = top - 5 * mm - 8
+        y = block(x2, y, lb["account"], creditor, 8, 10, w2)
+        if ref:
+            y = block(x2, y, lb["reference"], [ref], 8, 10, w2)
+        if f["message"]:
+            y = block(x2, y, lb["info"], [f["message"]], 8, 10, w2)
+        if debtor:
+            block(x2, y, lb["payable_by"], debtor, 8, 10, w2)
+        else:
+            block(x2, y, lb["payable_by_blank"], [], 8, 10, w2)
+            _corners(c, x2, y - 25 * mm + 6, 65 * mm, 25 * mm)
+
+
 def _swiss_payment_part(kit: _Kit, payload: str, f: dict[str, Any]) -> list[Any]:
-    st = kit.st
-    lb = _QRB_LABELS.get(kit.lg, _QRB_LABELS["en"])
-    ref = f["reference"]
-    ref = " ".join([ref[:2], *(ref[i : i + 5] for i in range(2, 27, 5))]) if f["ref_type"] == "QRR" else (
-        " ".join(ref[i : i + 4] for i in range(0, len(ref), 4)))
-    creditor = "\n".join([_iban_spaced(f["iban"]), *_addr_lines(f["creditor"])])
-    rows: list[Any] = [_p(lb[1], st["bold"]), _p(creditor, st["body"])]
-    if ref:
-        rows += [_p(lb[2], st["bold"]), _p(ref, st["body"])]
-    if f["message"]:
-        rows += [_p(lb[3], st["bold"]), _p(f["message"], st["body"])]
-    if f["debtor"]:
-        rows += [_p(lb[4], st["bold"]), _p("\n".join(_addr_lines(f["debtor"])), st["body"])]
-    amount = f"{f['amount']:,.2f}".replace(",", " ")
-    left = [_p(lb[0], st["bold"]), Spacer(1, 2 * mm), _swiss_qr_drawing(payload), Spacer(1, 2 * mm),
-            _p(f"{lb[5]}: {f['currency']}  {lb[6]}: {amount}", st["body"])]
-    block = Table([[left, rows]], colWidths=[56 * mm, kit.frame_w - 56 * mm])
-    block.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                               ("LINEABOVE", (0, 0), (-1, 0), 0.5, colors.black, None, (2, 2))]))
-    return [Spacer(1, 4 * mm), KeepTogether([block])]
+    return [_SwissSlip(payload, f, kit.lg)]
 
 
 def _payment_block(
@@ -677,6 +797,7 @@ def _render(
 
     def furniture(c: rl_canvas.Canvas, page: int, total: int) -> None:
         c.saveState()
+        slip = page in (getattr(c, "qr_slip_pages", None) or ())
         if band:
             c.setFillColor(kit.accent)
             c.rect(0, H - band, W, band, stroke=0, fill=1)
@@ -686,6 +807,9 @@ def _render(
             _draw(c, f"{title} {number}", LEFT, H - 12 * mm - band, body_font, 8, MUTED, width=120 * mm)
             c.setStrokeColor(RULE)
             c.line(LEFT, H - 14 * mm - band, W - RIGHT, H - 14 * mm - band)
+        if slip:  # the slip owns the bottom 105 mm
+            c.restoreState()
+            return
         c.setStrokeColor(kit.accent if kit.template == "modern" else RULE)
         c.setLineWidth(0.6 if kit.template == "modern" else 0.5)
         c.line(LEFT, footer_h, W - RIGHT, footer_h)
@@ -720,6 +844,10 @@ def _render(
             PageTemplate(id="Later", frames=[later]),
         ]
     )
+    slips = [f for f in story if isinstance(f, _SwissSlip)]
+    for f in slips:
+        f.frame_bottom = bottom
+    story = [f for f in story if not isinstance(f, _SwissSlip)] + slips
     canvasmaker = type("_DocCanvas", (_NumberedCanvas,), {"furniture": staticmethod(furniture)})
     template.build(story, canvasmaker=canvasmaker)
     return buf.getvalue()

@@ -96,3 +96,41 @@ def test_pdf_renders_payment_part():
     co = {"company_name": "Muster AG", "address": "Bahnhofstrasse 1\n8001 Zürich", "iban": QR_IBAN,
           "country_code": "CH", "giro_code": True, "document_texts": {}, "logo_data_url": ""}
     assert render_document(doc, co).startswith(b"%PDF")
+
+
+def _pages(pdf: bytes) -> list[str]:
+    import io
+
+    from pypdf import PdfReader
+
+    return [p.extract_text() for p in PdfReader(io.BytesIO(pdf)).pages]
+
+
+CO = {"company_name": "Muster AG", "address": "Bahnhofstrasse 1\n8001 Zürich", "iban": QR_IBAN,
+      "country_code": "CH", "giro_code": True, "document_texts": {}, "logo_data_url": ""}
+
+
+@pytest.mark.parametrize(("lg", "receipt", "part", "account"), [
+    ("de", "Empfangsschein", "Zahlteil", "Konto / Zahlbar an"),
+    ("fr", "Récépissé", "Section paiement", "Compte / Payable à"),
+    ("it", "Ricevuta", "Sezione pagamento", "Conto / Pagabile a"),
+    ("en", "Receipt", "Payment part", "Account / Payable to"),
+])
+def test_slip_labels_follow_language(lg, receipt, part, account):
+    last = _pages(render_document(sample_document("invoice", lg, 2, "CHF"), CO, language=lg))[-1]
+    for label in (receipt, part, account):
+        assert label in last
+
+
+def test_slip_moves_to_a_new_page_when_space_is_short():
+    grew = False
+    for n in range(1, 25):
+        doc = sample_document("invoice", "de", n, "CHF")
+        plain = _pages(render_document(doc, CO | {"giro_code": False}))
+        swiss = _pages(render_document(doc, CO))
+        assert "Empfangsschein" in swiss[-1] and "Empfangsschein" not in "".join(swiss[:-1])
+        assert len(swiss) >= len(plain)
+        if len(swiss) > len(plain):
+            grew = True
+            break
+    assert grew
