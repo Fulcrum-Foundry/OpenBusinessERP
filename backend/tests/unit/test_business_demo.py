@@ -168,6 +168,24 @@ async def test_reinstall_replaces_case(session, monkeypatch):
     assert tb["balanced"]
 
 
+async def test_demo_seeds_on_the_chart_chosen_in_setup(session, monkeypatch):
+    monkeypatch.setattr(gl_service, "read_business_settings", _settings("DE", "EUR"))
+    monkeypatch.setattr(business_demo, "read_business_settings", _settings("DE", "EUR"))
+    await GLService(session).load_template("de_skr04")  # what the setup wizard does for a chosen SKR04
+
+    res = await install_business_demo(session, "trade_distribution", today=TODAY)
+    assert not res["already_installed"]
+    assert set((await session.execute(select(GLAccount.template))).scalars()) == {"de_skr04"}
+    assert (await GLService(session).trial_balance(None, None))["balanced"]
+    posted = await session.scalar(
+        select(func.count())
+        .select_from(GLJournalLine)
+        .join(GLAccount, GLAccount.id == GLJournalLine.account_id)
+        .where(GLAccount.code == EXPENSE_ACCOUNTS["de_skr04"]["bank"])
+    )
+    assert posted
+
+
 async def test_appointments_seeded_reset_and_stale(session, monkeypatch):
     from app.modules.appointments.models import (
         AppointmentBooking,

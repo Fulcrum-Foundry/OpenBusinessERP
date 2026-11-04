@@ -383,7 +383,15 @@ export function BusinessSetup() {
                 <select className={textareaCls} value={chart} onChange={(e) => setChart(e.target.value)} data-testid="setup-chart">
                   <option value="ifrs_generic">{t('bizsetup.chart_ifrs', { defaultValue: 'IFRS (international)' })}</option>
                   <option value="de_skr03">{t('bizsetup.chart_skr03', { defaultValue: 'SKR03 (Germany)' })}</option>
+                  {form.country_code === 'DE' && (
+                    <option value="de_skr04">{t('bizsetup.chart_skr04', { defaultValue: 'SKR04 (Germany)' })}</option>
+                  )}
                 </select>
+                {form.country_code === 'DE' && (
+                  <p className="mt-1 text-2xs text-content-tertiary" data-testid="setup-chart-hint">
+                    {t('bizsetup.chart_skr_hint', { defaultValue: 'SKR04 if your tax adviser uses it' })}
+                  </p>
+                )}
               </Field>
               <p className="text-2xs text-content-tertiary">
                 {t('bizsetup.number_format', { defaultValue: 'Numbers and dates: {{sample}}', sample: `${fmtCurrency(1234.5, /^[A-Z]{3}$/.test(form.base_currency) ? form.base_currency : 'EUR')} · ${fmtDate(new Date().toISOString().slice(0, 10))}` })}

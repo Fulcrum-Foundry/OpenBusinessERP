@@ -67,6 +67,23 @@ describe('BusinessSetup', () => {
     expect(suggestedChart('FR')).toBe('ifrs_generic');
   });
 
+  it('offers SKR04 for Germany only and loads the chosen chart', async () => {
+    renderAt();
+    const chart = await screen.findByTestId('setup-chart');
+    expect(screen.getByTestId('setup-chart-hint')).toHaveTextContent('SKR04 if your tax adviser uses it');
+    fireEvent.change(chart, { target: { value: 'de_skr04' } });
+    fireEvent.click(screen.getByTestId('setup-next'));
+    await waitFor(() => expect(api.apiPost).toHaveBeenCalledWith('/v1/gl/templates/de_skr04/load/', {}));
+    expect(api.apiPost).not.toHaveBeenCalledWith('/v1/gl/templates/de_skr03/load/', {});
+
+    cleanup();
+    stored = { ...base };
+    renderAt();
+    fireEvent.change(await screen.findByTestId('setup-country'), { target: { value: 'FR' } });
+    expect(screen.queryByTestId('setup-chart-hint')).toBeNull();
+    expect(screen.getByTestId('setup-chart').querySelector('option[value="de_skr04"]')).toBeNull();
+  });
+
   it('walks every step, skipping mail, and issues the first invoice', async () => {
     renderAt();
     fireEvent.change(await screen.findByTestId('setup-company-name'), { target: { value: 'Acme GmbH' } });
