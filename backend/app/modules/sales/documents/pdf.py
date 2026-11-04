@@ -141,14 +141,14 @@ def _footer_columns(company: dict[str, Any], lg: str, blocks: list[str]) -> list
         "address": [c.get("company_name", ""), *(c.get("address", "") or "").splitlines()],
         "contact": [x for x in (c.get("phone", ""), c.get("email", ""), c.get("website", "")) if x],
         "legal": [],
-        "bank": [x for x in (c.get("bank_name", ""), _iban_spaced(c.get("iban", "")), c.get("bic", "")) if x],
+        "bank": [c.get("bank_name", "")],
     }
-    if c.get("register_court") or c.get("register_number"):
-        cols["legal"].append(
-            f"{t(lg, 'register')}: {c.get('register_court', '')} {c.get('register_number', '')}".strip()
-        )
+    if c.get("iban"):
+        cols["bank"] += [f"IBAN {_iban_spaced(c['iban'])}"] + ([f"BIC {c['bic']}"] if c.get("bic") else [])
     if c.get("managing_directors"):
-        cols["legal"].append(f"{t(lg, 'directors')}: {c['managing_directors']}")
+        cols["address"].append(f"{t(lg, 'directors')}: {c['managing_directors']}")
+    if c.get("register_court") or c.get("register_number"):
+        cols["legal"] += [c.get("register_court", ""), c.get("register_number", "")]
     if c.get("vat_id"):
         cols["legal"].append(f"{t(lg, 'vat_id')}: {c['vat_id']}")
     if c.get("tax_number"):
@@ -242,8 +242,6 @@ class _Kit:
         return colors.Color(1 - (1 - a.red) * amount, 1 - (1 - a.green) * amount, 1 - (1 - a.blue) * amount)
 
     def head_style(self) -> tuple[ParagraphStyle, ParagraphStyle]:
-        if self.template == "classic":
-            return self.st["head"], self.st["headr"]
         colour = self.accent
         return (
             ParagraphStyle("headA", parent=self.st["head"], textColor=colour),
@@ -251,7 +249,7 @@ class _Kit:
         )
 
     def table_style(self, n_rows: int, special: list[int]) -> TableStyle:
-        pad = 1.6 if self.template == "compact" else 3
+        pad = 1.6 if self.template == "compact" else 2.2
         cmds: list[tuple[Any, ...]] = [
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("TOPPADDING", (0, 0), (-1, -1), pad),
@@ -260,7 +258,11 @@ class _Kit:
             ("RIGHTPADDING", (0, 0), (-1, -1), 3),
         ]
         if self.template == "classic":
-            cmds += [("BACKGROUND", (0, 0), (-1, 0), self.accent), ("LINEBELOW", (0, 1), (-1, -1), 0.4, RULE)]
+            cmds += [
+                ("LINEABOVE", (0, 0), (-1, 0), 0.6, self.accent),
+                ("LINEBELOW", (0, 0), (-1, 0), 0.6, self.accent),
+                ("LINEBELOW", (0, 1), (-1, -1), 0.25, RULE),
+            ]
         elif self.template == "modern":
             cmds += [
                 ("BACKGROUND", (0, 0), (-1, 0), self.tint(0.12)),
@@ -274,7 +276,7 @@ class _Kit:
                 ("LINEBELOW", (0, 1), (-1, -1), 0.25, RULE),
             ]
         for r in special:
-            cmds += [("BACKGROUND", (0, r), (-1, r), self.tint(0.07)), ("LINEABOVE", (0, r), (-1, r), 0.6, MUTED)]
+            cmds += [("LINEABOVE", (0, r), (-1, r), 0.5, MUTED), ("LINEBELOW", (0, r), (-1, r), 0.5, MUTED)]
         return TableStyle(cmds)
 
 
@@ -371,14 +373,27 @@ def _totals(kit: _Kit, lines: list[_Line], net_total: Decimal, gross_total: Deci
         acc = by_rate.setdefault(ln.tax_rate, [Decimal(0), Decimal(0)])
         acc[0] += ln.net
         acc[1] += ln.tax
-    rows: list[list[Any]] = [[_p(t(lg, "net_total"), st["body"]), _p(kit.money(net_total), st["bodyr"])]]
+    rows: list[list[Any]] = []
+    if len(by_rate) > 1:
+        for rate in sorted(by_rate):
+            label = t(lg, "net_at_rate", rate=fmt_rate(rate, lg))
+            rows.append([_p(label, st["body"]), _p(kit.money(by_rate[rate][0]), st["bodyr"])])
+    rows.append([_p(t(lg, "net_total"), st["bold"] if len(by_rate) > 1 else st["body"]),
+                 _p(kit.money(net_total), st["boldr"] if len(by_rate) > 1 else st["bodyr"])])
     for rate in sorted(by_rate):
         net, tax = by_rate[rate]
-        label = t(lg, "tax_line", rate=fmt_rate(rate, lg), net=kit.money(net))
+        if len(by_rate) > 1:
+            label = t(lg, "tax_at_rate", rate=fmt_rate(rate, lg))
+        else:
+            label = t(lg, "tax_line", rate=fmt_rate(rate, lg), net=kit.money(net))
         rows.append([_p(label, st["body"]), _p(kit.money(tax), st["bodyr"])])
     rows.append([_p(grand_label, st["bold"]), _p(kit.money(gross_total), st["boldr"])])
     tot = Table(rows, colWidths=[72 * mm, 32 * mm], hAlign="LEFT" if lg in RTL_LANGUAGES else "RIGHT")
-    cmds: list[tuple[Any, ...]] = [("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]
+    cmds: list[tuple[Any, ...]] = [
+        ("TOPPADDING", (0, 0), (-1, -1), 1.2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1.2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+    ]
     if kit.template == "modern":
         white_b = ParagraphStyle("gw", parent=st["bold"], textColor=colors.white)
         white_r = ParagraphStyle("gwr", parent=st["boldr"], textColor=colors.white)
@@ -390,9 +405,15 @@ def _totals(kit: _Kit, lines: list[_Line], net_total: Decimal, gross_total: Deci
             ("BOTTOMPADDING", (0, -1), (-1, -1), 4),
         ]
     else:
-        cmds += [("LINEABOVE", (0, -1), (-1, -1), 0.8, kit.accent)]
+        if len(by_rate) > 1:
+            cmds += [("LINEABOVE", (0, len(by_rate)), (-1, len(by_rate)), 0.25, RULE)]
+        cmds += [("LINEABOVE", (0, -1), (-1, -1), 0.6, kit.accent)]
         if kit.template == "classic":
-            cmds += [("LINEBELOW", (0, -1), (-1, -1), 0.8, kit.accent)]
+            cmds += [
+                ("LINEBELOW", (0, -1), (-1, -1), 1.0, kit.accent),
+                ("TOPPADDING", (0, -1), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, -1), (-1, -1), 3),
+            ]
     tot.setStyle(TableStyle(cmds))
     return KeepTogether([tot])
 
@@ -629,14 +650,15 @@ def _payment_block(
     iban = company.get("iban", "")
     bank: list[str] = []
     if iban:
-        bank = [f"{t(lg, 'account_holder')}: {company.get('company_name', '')}", f"IBAN: {_iban_spaced(iban)}"]
-        if company.get("bic"):
-            bank.append(f"BIC: {company['bic']}")
-        if company.get("bank_name"):
-            bank.append(company["bank_name"])
+        holder = f"{t(lg, 'account_holder')}: {company.get('company_name', '')}"
+        bank = [" · ".join(x for x in (holder, company.get("bank_name", "")) if x)]
+        bic = f"BIC {company['bic']}" if company.get("bic") else ""
+        bank.append(" · ".join(x for x in (f"IBAN {_iban_spaced(iban)}", bic) if x))
+        bank.append(t(lg, "pay_reference", ref=reference) if reference else "")
+        bank = [x for x in bank if x]
     text: list[Any] = [_p(t(lg, "payment_terms"), st["bold"]), _p(terms, st["body"])]
     if bank:
-        text += [Spacer(1, 2 * mm), _p(t(lg, "bank"), st["bold"]), _p("\n".join(bank), st["body"])]
+        text += [Spacer(1, 1.5 * mm), _p(t(lg, "bank"), st["bold"]), _p("\n".join(bank), st["body"])]
     swiss = swiss_qr_bill_data(company, currency=kit.currency, amount=amount, reference=reference,
                                debtor_name=debtor_name, debtor_address=debtor_address)
     if swiss is not None:
@@ -775,25 +797,28 @@ def _render(
                 c.line(4 * mm, y, 9 * mm, y)
             c.line(4 * mm, H / 2, 11 * mm, H / 2)
         letterhead(c)
-        # DIN 5008 form B: return-address zone 45-50 mm, recipient 50-90 mm from top, 20 mm from the left edge.
+        # DIN 5008 form B: address field 45-90 mm from top, 20 mm from the left edge (text 5 mm in);
+        # the return address sits at the foot of the 17.7 mm endorsement zone, the recipient
+        # zone starts at 62.7 mm. Information block at 125 mm, from 50 mm down.
         y = H - 50 * mm
         if d["din5008"]:
             sender = " · ".join(
                 x for x in [company.get("company_name", ""), *(company.get("address", "") or "").splitlines()] if x
-            )
-            _draw(c, sender[:110], LEFT, H - 49 * mm, body_font, 6.5, MUTED, width=85 * mm)
+            )[:110]
+            _draw(c, sender, LEFT, H - 59.5 * mm, body_font, 6.5, MUTED, width=85 * mm)
             c.setStrokeColor(RULE)
-            c.setLineWidth(0.5)
-            c.line(LEFT, H - 50 * mm, LEFT + 80 * mm, H - 50 * mm)
-            y = H - 55 * mm
-        for line in [ln for ln in recipient if ln][:7]:
+            c.setLineWidth(0.3)
+            rule_w = min(85 * mm, stringWidth(sender, body_font, 6.5))
+            c.line(LEFT, H - 60.6 * mm, LEFT + rule_w, H - 60.6 * mm)
+            y = H - 66 * mm
+        for line in [ln for ln in recipient if ln][:6]:
             _draw(c, line[:60], LEFT, y, body_font, 10, colors.black, width=80 * mm)
-            y -= 4.6 * mm
-        y = H - 50 * mm
-        for label, value in info:
-            _draw(c, label, 125 * mm, y, body_font, 8, MUTED, width=30 * mm)
-            _draw(c, value, W - RIGHT, y, bold_font, 8.5, colors.black, "right", width=50 * mm)
-            y -= 5 * mm
+            y -= 4.3 * mm
+        y = H - 53 * mm
+        for label, value in info[:9]:
+            _draw(c, label, 125 * mm, y, body_font, 8, MUTED, width=34 * mm)
+            _draw(c, value, W - RIGHT, y, body_font, 8.5, colors.black, "right", width=50 * mm)
+            y -= 4.4 * mm
 
     def furniture(c: rl_canvas.Canvas, page: int, total: int) -> None:
         c.saveState()
@@ -814,12 +839,17 @@ def _render(
         c.setLineWidth(0.6 if kit.template == "modern" else 0.5)
         c.line(LEFT, footer_h, W - RIGHT, footer_h)
         size = 6.2 if compact else 6.8
-        width = kit.frame_w / max(1, len(footer_cols))
-        for i, col in enumerate(footer_cols):
+        gap = 4 * mm
+        need = [max(stringWidth(x[:52], body_font, size) for x in col[:5]) for col in footer_cols]
+        scale = min(1.0, (kit.frame_w - gap * (len(need) - 1)) / max(1.0, sum(need)))
+        extra = (kit.frame_w - gap * (len(need) - 1) - sum(need) * scale) / max(1, len(need) - 1)
+        x = LEFT
+        for col, w in zip(footer_cols, need, strict=True):
             y = footer_h - 4 * mm
             for line in col[:5]:
-                _draw(c, line[:52], LEFT + i * width, y, body_font, size, MUTED, width=width - 2 * mm)
+                _draw(c, line[:52], x, y, body_font, size, MUTED, width=w * scale + 1)
                 y -= (2.8 if compact else 3.2) * mm
+            x += w * scale + gap + (extra if len(need) > 1 else 0)
         if footer_extra:
             _draw(c, footer_extra[:140], LEFT, 7 * mm, body_font, size, MUTED, width=130 * mm)
         if d["page_numbers"]:
@@ -828,8 +858,9 @@ def _render(
 
     buf = io.BytesIO()
     bottom = footer_h + 4 * mm
-    first = Frame(LEFT, bottom, kit.frame_w, H - 98 * mm - bottom, id="first", showBoundary=0)
-    later = Frame(LEFT, bottom, kit.frame_w, H - 20 * mm - band - bottom, id="later", showBoundary=0)
+    flush = {"showBoundary": 0, "leftPadding": 0, "rightPadding": 0}
+    first = Frame(LEFT, bottom, kit.frame_w, H - 98 * mm - bottom, id="first", **flush)
+    later = Frame(LEFT, bottom, kit.frame_w, H - 20 * mm - band - bottom, id="later", **flush)
     template = BaseDocTemplate(
         buf,
         pagesize=A4,
@@ -874,8 +905,14 @@ def render_document(
         info.append((t(lg, "delivery_period"), f"{fmt_date(doc.delivery_date, lg)} – {fmt_date(doc.delivery_end, lg)}"))
     elif doc.delivery_date:
         info.append((t(lg, "delivery_date"), fmt_date(doc.delivery_date, lg)))
+    if getattr(doc, "customer_number", ""):
+        info.insert(2, (t(lg, "customer_no"), doc.customer_number))
+    if doc.kind == "invoice" and doc.due_date:
+        info.append((t(lg, "due_date"), fmt_date(doc.due_date, lg)))
     if doc.customer_vat_id:
         info.append((t(lg, "customer_vat"), doc.customer_vat_id))
+    if getattr(doc, "contact_person", ""):
+        info.append((t(lg, "contact_person"), doc.contact_person))
 
     story: list[Any] = [_p(f"{title} {doc.number}", st["title"]), Spacer(1, 3 * mm)]
     if source_number:
@@ -883,7 +920,7 @@ def render_document(
     story += [_p(texts.get("intro") or t(lg, f"intro.{doc.kind}"), st["body"]), Spacer(1, 4 * mm)]
     story += [_line_table(kit, lines), Spacer(1, 4 * mm)]
     grand = t(lg, "credit_total") if doc.kind == "credit_note" else t(lg, "gross_total")
-    story += [_totals(kit, lines, doc.net_total, doc.gross_total, grand), Spacer(1, 4 * mm)]
+    story += [_totals(kit, lines, doc.net_total, doc.gross_total, grand), Spacer(1, 3 * mm)]
     if doc.tax_note:
         story += [_p(doc.tax_note, st["body"]), Spacer(1, 3 * mm)]
     if doc.notes:

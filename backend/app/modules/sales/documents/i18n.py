@@ -13,6 +13,11 @@ LANGUAGES = ("en", "de", "ru", "fr", "es", "it", "pl", "ar")
 
 _L: dict[str, dict[str, str]] = {
     "en": {
+        "tax_at_rate": "VAT {rate} %",
+        "pay_reference": "Reference: {ref}",
+        "net_at_rate": "Net {rate} %",
+        "customer_no": "Customer no.",
+        "contact_person": "Contact",
         "quote": "Quotation",
         "order": "Order confirmation",
         "invoice": "Invoice",
@@ -60,6 +65,11 @@ _L: dict[str, dict[str, str]] = {
         "dated {document_date} attached as a PDF. Amount: {total}.\n\nKind regards\n{company_name}",
     },
     "de": {
+        "tax_at_rate": "USt. {rate} %",
+        "pay_reference": "Verwendungszweck: {ref}",
+        "net_at_rate": "Netto {rate} %",
+        "customer_no": "Kundennr.",
+        "contact_person": "Ansprechpartner",
         "quote": "Angebot",
         "order": "Auftragsbestätigung",
         "invoice": "Rechnung",
@@ -107,6 +117,11 @@ _L: dict[str, dict[str, str]] = {
         "vom {document_date} als PDF. Betrag: {total}.\n\nMit freundlichen Grüßen\n{company_name}",
     },
     "ru": {
+        "tax_at_rate": "НДС {rate} %",
+        "pay_reference": "Назначение платежа: {ref}",
+        "net_at_rate": "Нетто {rate} %",
+        "customer_no": "№ клиента",
+        "contact_person": "Контактное лицо",
         "quote": "Коммерческое предложение",
         "order": "Подтверждение заказа",
         "invoice": "Счёт",
@@ -154,6 +169,11 @@ _L: dict[str, dict[str, str]] = {
         "от {document_date} в формате PDF. Сумма: {total}.\n\nС уважением\n{company_name}",
     },
     "fr": {
+        "tax_at_rate": "TVA {rate} %",
+        "pay_reference": "Référence : {ref}",
+        "net_at_rate": "HT {rate} %",
+        "customer_no": "N° client",
+        "contact_person": "Interlocuteur",
         "quote": "Devis",
         "order": "Confirmation de commande",
         "invoice": "Facture",
@@ -201,6 +221,11 @@ _L: dict[str, dict[str, str]] = {
         "du {document_date} au format PDF. Montant : {total}.\n\nCordialement\n{company_name}",
     },
     "es": {
+        "tax_at_rate": "IVA {rate} %",
+        "pay_reference": "Concepto: {ref}",
+        "net_at_rate": "Base {rate} %",
+        "customer_no": "N.º cliente",
+        "contact_person": "Contacto",
         "quote": "Presupuesto",
         "order": "Confirmación de pedido",
         "invoice": "Factura",
@@ -248,6 +273,11 @@ _L: dict[str, dict[str, str]] = {
         "del {document_date} en PDF. Importe: {total}.\n\nSaludos cordiales\n{company_name}",
     },
     "it": {
+        "tax_at_rate": "IVA {rate} %",
+        "pay_reference": "Causale: {ref}",
+        "net_at_rate": "Imponibile {rate} %",
+        "customer_no": "Cod. cliente",
+        "contact_person": "Referente",
         "quote": "Preventivo",
         "order": "Conferma d'ordine",
         "invoice": "Fattura",
@@ -295,6 +325,11 @@ _L: dict[str, dict[str, str]] = {
         "del {document_date} in PDF. Importo: {total}.\n\nCordiali saluti\n{company_name}",
     },
     "pl": {
+        "tax_at_rate": "VAT {rate} %",
+        "pay_reference": "Tytuł przelewu: {ref}",
+        "net_at_rate": "Netto {rate} %",
+        "customer_no": "Nr klienta",
+        "contact_person": "Osoba kontaktowa",
         "quote": "Oferta",
         "order": "Potwierdzenie zamówienia",
         "invoice": "Faktura",
