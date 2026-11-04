@@ -249,7 +249,7 @@ class _Kit:
         )
 
     def table_style(self, n_rows: int, special: list[int]) -> TableStyle:
-        pad = 1.6 if self.template == "compact" else 2.2
+        pad = 1.4 if self.template == "compact" else 1.8
         cmds: list[tuple[Any, ...]] = [
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("TOPPADDING", (0, 0), (-1, -1), pad),
@@ -390,8 +390,8 @@ def _totals(kit: _Kit, lines: list[_Line], net_total: Decimal, gross_total: Deci
     rows.append([_p(grand_label, st["bold"]), _p(kit.money(gross_total), st["boldr"])])
     tot = Table(rows, colWidths=[72 * mm, 32 * mm], hAlign="LEFT" if lg in RTL_LANGUAGES else "RIGHT")
     cmds: list[tuple[Any, ...]] = [
-        ("TOPPADDING", (0, 0), (-1, -1), 1.2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 1.2),
+        ("TOPPADDING", (0, 0), (-1, -1), 1),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
     ]
     if kit.template == "modern":
@@ -658,7 +658,7 @@ def _payment_block(
         bank = [x for x in bank if x]
     text: list[Any] = [_p(t(lg, "payment_terms"), st["bold"]), _p(terms, st["body"])]
     if bank:
-        text += [Spacer(1, 1.5 * mm), _p(t(lg, "bank"), st["bold"]), _p("\n".join(bank), st["body"])]
+        text += [Spacer(1, 1 * mm), _p(t(lg, "bank"), st["bold"]), _p("\n".join(bank), st["body"])]
     swiss = swiss_qr_bill_data(company, currency=kit.currency, amount=amount, reference=reference,
                                debtor_name=debtor_name, debtor_address=debtor_address)
     if swiss is not None:
@@ -673,16 +673,19 @@ def _payment_block(
                 amount=amount,
                 remittance=reference,
             )
-            qr = _qr_drawing(payload, 26 * mm if kit.template == "compact" else 28 * mm)
+            qr = _qr_drawing(payload, 24 * mm if kit.template == "compact" else 26 * mm)
         except GiroCodeError:
             qr = None
     if qr is None:
         return [KeepTogether(text)]
-    cell = Table([[qr], [_p(t(lg, "qr"), st["small"])]], colWidths=[34 * mm])
-    cells = [cell, text] if lg in RTL_LANGUAGES else [text, cell]
-    widths = [36 * mm, kit.frame_w - 36 * mm] if lg in RTL_LANGUAGES else [kit.frame_w - 36 * mm, 36 * mm]
+    qr_w = qr.width + 2 * mm
+    text += [Spacer(1, 0.5 * mm), _p(t(lg, "qr"), st["small"])]
+    cells = [qr, text] if lg in RTL_LANGUAGES else [text, qr]
+    widths = [qr_w, kit.frame_w - qr_w] if lg in RTL_LANGUAGES else [kit.frame_w - qr_w, qr_w]
     block = Table([cells], colWidths=widths)
-    block.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+    block.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                               ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
+                               ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     return [KeepTogether([block])]
 
 
@@ -857,9 +860,9 @@ def _render(
         c.restoreState()
 
     buf = io.BytesIO()
-    bottom = footer_h + 4 * mm
+    bottom = footer_h + 2.5 * mm
     flush = {"showBoundary": 0, "leftPadding": 0, "rightPadding": 0}
-    first = Frame(LEFT, bottom, kit.frame_w, H - 98 * mm - bottom, id="first", **flush)
+    first = Frame(LEFT, bottom, kit.frame_w, H - 93 * mm - bottom, id="first", **flush)
     later = Frame(LEFT, bottom, kit.frame_w, H - 20 * mm - band - bottom, id="later", **flush)
     template = BaseDocTemplate(
         buf,
@@ -914,13 +917,13 @@ def render_document(
     if getattr(doc, "contact_person", ""):
         info.append((t(lg, "contact_person"), doc.contact_person))
 
-    story: list[Any] = [_p(f"{title} {doc.number}", st["title"]), Spacer(1, 3 * mm)]
+    story: list[Any] = [_p(f"{title} {doc.number}", st["title"]), Spacer(1, 2 * mm)]
     if source_number:
         story += [_p(t(lg, "relates_to", ref=source_number), st["small"]), Spacer(1, 2 * mm)]
-    story += [_p(texts.get("intro") or t(lg, f"intro.{doc.kind}"), st["body"]), Spacer(1, 4 * mm)]
-    story += [_line_table(kit, lines), Spacer(1, 4 * mm)]
+    story += [_p(texts.get("intro") or t(lg, f"intro.{doc.kind}"), st["body"]), Spacer(1, 3 * mm)]
+    story += [_line_table(kit, lines), Spacer(1, 3 * mm)]
     grand = t(lg, "credit_total") if doc.kind == "credit_note" else t(lg, "gross_total")
-    story += [_totals(kit, lines, doc.net_total, doc.gross_total, grand), Spacer(1, 3 * mm)]
+    story += [_totals(kit, lines, doc.net_total, doc.gross_total, grand), Spacer(1, 2 * mm)]
     if doc.tax_note:
         story += [_p(doc.tax_note, st["body"]), Spacer(1, 3 * mm)]
     if doc.notes:
@@ -938,7 +941,7 @@ def render_document(
         )
         if payment_url:
             story += _online_payment_block(kit, payment_url)
-    story += [Spacer(1, 3 * mm), _p(texts.get("closing") or t(lg, f"closing.{doc.kind}"), st["body"])]
+    story += [Spacer(1, 2 * mm), _p(texts.get("closing") or t(lg, f"closing.{doc.kind}"), st["body"])]
     story += _terms(kit)
     recipient = [doc.customer_name, *(doc.customer_address or "").splitlines()]
     return _render(company, kit, title=title, number=doc.number, recipient=recipient, info=info, story=story)
