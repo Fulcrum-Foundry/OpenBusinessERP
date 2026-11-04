@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, History, Pause, Pencil, Play, Plus, Repeat, Trash2, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarClock, History, Pause, Pencil, Play, Plus, Repeat, Trash2, Zap } from 'lucide-react';
 import { Badge, Breadcrumb, Button, ConfirmDialog, EmptyState, SkeletonTable, StatCard } from '@/shared/ui';
 import type { BadgeVariant } from '@/shared/ui';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -141,6 +141,13 @@ export function RecurringInvoicesPage() {
 
       {list.isLoading ? (
         <SkeletonTable rows={4} />
+      ) : list.error ? (
+        <EmptyState
+          icon={<AlertTriangle size={28} />}
+          title={t('recurring.load_error', { defaultValue: "We couldn't load recurring invoices right now." })}
+          description={getErrorMessage(list.error)}
+          action={{ label: t('common.retry', { defaultValue: 'Retry' }), onClick: () => void list.refetch() }}
+        />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<Repeat size={28} />}
@@ -248,6 +255,8 @@ function RunHistory({ id, name, onOpen }: { id: string; name: string; onOpen: (d
       </h2>
       {runs.isLoading ? (
         <SkeletonTable rows={2} />
+      ) : runs.error ? (
+        <p role="alert" className="text-sm text-semantic-error">{t('recurring.load_error', { defaultValue: "We couldn't load recurring invoices right now." })}</p>
       ) : rows.length === 0 ? (
         <p className="text-sm text-content-tertiary">{t('recurring.history_empty', { defaultValue: 'Nothing generated yet.' })}</p>
       ) : (

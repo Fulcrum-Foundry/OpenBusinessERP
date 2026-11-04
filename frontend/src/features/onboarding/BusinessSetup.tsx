@@ -473,7 +473,7 @@ export function BusinessSetup() {
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t('bizsetup.customer_name', { defaultValue: 'Customer name' })}>
-                <Input value={customer.name} placeholder="Example Customer Ltd" onChange={(e) => setCustomer({ ...customer, name: e.target.value })} data-testid="setup-customer" />
+                <Input value={customer.name} placeholder={t('bizsetup.customer_name_ph', { defaultValue: 'Example Customer Ltd' })} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} data-testid="setup-customer" />
               </Field>
               <Field label={t('bizsetup.customer_email', { defaultValue: 'Customer email' })}>
                 <Input value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} />
