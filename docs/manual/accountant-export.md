@@ -28,8 +28,12 @@ Before the first export, enter the numbers your adviser gives you:
 | Adviser number (Berater-Nr.) | 1001 to 9999999 | 1001 |
 | Client number (Mandanten-Nr.) | 1 to 99999 | 1 |
 | G/L account length | 4 to 8 | 4 |
+| Customer accounts (Debitoren) from / to | number range | 10000 to 69999 |
+| Supplier accounts (Kreditoren) from / to | number range | 70000 to 99999 |
+| Initials (Diktatkürzel) | up to 2 characters | empty |
+| Lock bookings on import (Festschreibung) | on / off | off |
 
-The screen shows these three. The file `gl_export_settings.json` in the data directory also holds the chart key (`skr`, "03" or "04", default "03"). The defaults are placeholders. Wrong numbers make the import fail or land in the wrong client.
+The screen shows these settings. The file `gl_export_settings.json` in the data directory also holds the chart key (`skr`, "03" or "04", default "03"). The defaults are placeholders. Wrong numbers make the import fail or land in the wrong client.
 
 ## Limits you must know
 

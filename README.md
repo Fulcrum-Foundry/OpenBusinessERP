@@ -29,7 +29,7 @@ The demo company, *Kestrelmark Handel GmbH*, is a wholesale trader. A typical mo
 
 1. A customer asks for a price. You write an **Angebot** (quote) and send it as PDF from your own mail server.
 2. The customer accepts. The quote becomes an **Auftrag** (order), then a **Lieferschein** (delivery) that takes the goods out of stock.
-3. The delivery becomes a **Rechnung** (invoice) with a SEPA GiroCode, or a Swiss QR-bill for CH/LI businesses. For a public-sector customer you export it as XRechnung. Posting the invoice writes the journal entry on SKR03 or SKR04, split by VAT rate.
+3. The delivery becomes a **Rechnung** (invoice) with a SEPA GiroCode, or a Swiss QR-bill for CH/LI businesses. For a public-sector customer you export it as XRechnung from the Finance page. Posting the invoice writes the journal entry on SKR03 or SKR04, split by VAT rate.
 4. Stock runs low. A **Bestellung** (purchase order) goes to the supplier; the goods receipt and the supplier's **Eingangsrechnung** (bill) are matched against it.
 5. You import the bank statement (camt.053, MT940 or CSV). The **Bankabgleich** proposes the open invoice or bill behind each line; you confirm.
 6. A customer has not paid. The dunning run proposes a **Mahnung** level and sends the reminder by e-mail.
