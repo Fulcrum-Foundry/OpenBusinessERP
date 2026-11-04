@@ -23798,6 +23798,9 @@ const resource = {
     "contacts.field_payment_terms": "Términos de pago",
     "contacts.field_vat": "VAT/Número de identificación fiscal",
     "contacts.field_website": "Sitio web",
+    "contacts.field_leitweg_id": "Leitweg-ID (para XRechnung a compradores del sector público)",
+    "contacts.leitweg_invalid": "Formato esperado, por ejemplo 991-01234-44",
+    "contacts.leitweg_placeholder": "p. ej., 991-01234-44",
     "contacts.file_types": ".xlsx, .csv",
     "contacts.filter_by_tag": "Filtro rápido",
     "contacts.filter_by_type": "Filtrar por tipo de contacto",
@@ -38828,6 +38831,17 @@ const resource = {
     "settings.docs_field_payment_terms_text": "Texto de las condiciones de pago (opcional, sustituye la frase generada)",
     "settings.docs_field_footer_text": "Línea adicional de pie de página",
     "inventory.no_count_lines": "No hay artículos en stock que contar en este almacén.",
+    "banking.load_error": "No se pudieron cargar las cuentas bancarias.",
+    "bizsetup.chart_at_ekr": "EKR (Austria)",
+    "bizsetup.chart_ch_kmu": "KMU-Kontenrahmen (Suiza)",
+    "bizsetup.chart_skr04": "SKR04 (Alemania)",
+    "bizsetup.chart_skr_hint": "SKR04 si lo utiliza su asesor fiscal",
+    "bizsetup.customer_name_ph": "Cliente de Ejemplo S.A. de C.V.",
+    "recurring.load_error": "No se pudieron cargar las facturas recurrentes.",
+    "sales.buyer_reference": "Referencia del comprador (Leitweg-ID)",
+    "sales.einvoice_export": "Exportar factura electrónica",
+    "sales.einvoice_hint": "Comprueba la factura según EN 16931 y exporta XRechnung, ZUGFeRD o Peppol.",
+    "sales.einvoice_title": "Factura electrónica",
   }
 } as { translation: Record<string, string> };
 
