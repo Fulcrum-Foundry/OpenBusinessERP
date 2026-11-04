@@ -35,13 +35,13 @@ The screen shows these three. The file `gl_export_settings.json` in the data dir
 
 DATEV:
 
-- Only the first 14 columns of the Buchungsstapel are written. DATEV reads by column position, so the 111 optional columns are left out. Fields in them (for example cost centres) are not exported.
-- Receivables and payables are booked on the summary accounts (SKR03 1400 and 1600, SKR04 1200 and 3300), not on personal accounts per customer or supplier. Your adviser may need to split them using the Debitoren/Kreditoren file.
+- All 125 columns of the Buchungsstapel are written. Columns without a data source in the program (for example cost centres) stay empty.
+- Receivables and payables of invoices, bills and their payments are booked on Debitor/Kreditor personal accounts. Entries without a known customer or supplier stay on the collective account (SKR03 1400 and 1600, SKR04 1200 and 3300).
 - An entry with several lines is split into pairs of rows with the same document field.
 - VAT lines on the tax accounts (SKR03 1571, 1576, 1771, 1776; SKR04 1401, 1406, 3801, 3806) are folded into the net line, which then carries the gross amount. Net accounts that are automatic accounts (SKR03 3300, 3400, 8300, 8400; SKR04 5300, 5400, 4300, 4400) get no tax key. Other accounts get the classic two-digit key. VAT lines that cannot be matched stay as separate rows.
 - On SKR03, invoices and bills post per VAT rate: 19 % to 8400/1776 (purchases 3400/1576), 7 % to 8300/1771 (purchases 3300/1571). A 0 % invoice line goes to 8337 when the tax note names reverse charge or § 13b, to 8125 for an intra-community supply, to 8195 for a small business under § 19 UStG, and to 8100 otherwise. On SKR04 the same rules use 4400/3806 (purchases 5400/1406) for 19 %, 4300/3801 (purchases 5300/1401) for 7 %, and 4337, 4125, 4185 and 4100 for 0 %. Bills that clear a goods receipt keep the expense on the receipt account; only their input VAT is split.
 - The file is encoded in Windows-1252, as DATEV expects.
-- The program ships an SKR03 chart, an SKR04 chart and an IFRS-style chart. The export uses the SKR of the loaded German chart, so pick the chart your adviser works with before you start booking.
+- The program ships SKR03, SKR04, the Austrian EKR, the Swiss KMU chart and an IFRS-style chart. The DATEV export uses the SKR of the loaded German chart, so pick the chart your adviser works with before you start booking.
 
 SAF-T:
 
