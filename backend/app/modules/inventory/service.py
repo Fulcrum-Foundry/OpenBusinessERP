@@ -49,6 +49,7 @@ GL_ADJUST = "inventory_adjustment"
 # Chart defaults; inventory itself follows the purchasing "inventory" role so receipts and issues hit one account.
 DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
     "de_skr03": {"cogs": "3400", "diff": "4900"},
+    "de_skr04": {"cogs": "5400", "diff": "6300"},
     "ifrs_generic": {"cogs": "5000", "diff": "5500"},
 }
 

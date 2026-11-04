@@ -17,7 +17,7 @@ No. The AI chat is optional and needs your own API key. Everything else works wi
 ## Accounting
 
 **Which charts of accounts are included?**
-SKR03 (Germany) and a generic IFRS-style chart. You can add, rename and deactivate accounts afterwards.
+SKR03 and SKR04 (Germany) and a generic IFRS-style chart. You can add, rename and deactivate accounts afterwards.
 
 **Is the bookkeeping double-entry?**
 Yes. Issuing an invoice, posting a bill, recording a payment and confirming a bank match all create ledger entries. Posted entries are not edited. You reverse them.

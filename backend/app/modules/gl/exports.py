@@ -21,9 +21,10 @@ DATEV limitations (documented in the UI as well):
   column and drop the discount row; DATEV derives the Skonto booking itself.
 * Beleglink is ``BEDI "<document GUID>"`` for invoices and bills; Belegfeld 2 is the due date (TTMMJJ).
 * Multi-line entries are split into pairwise rows with the same Belegfeld 1.
-* VAT lines on SKR03 accounts 1571/1576/1771/1776 are folded into the net line
-  (gross amount). Net accounts that are SKR03 Automatikkonten (3300/3400/8300/
-  8400) get no BU-Schlüssel; other accounts get the classic 2-digit key.
+* VAT lines on the tax accounts (SKR03 1571/1576/1771/1776, SKR04 1401/1406/3801/3806)
+  are folded into the net line (gross amount). Net accounts that are Automatikkonten
+  (SKR03 3300/3400/8300/8400, SKR04 5300/5400/4300/4400) get no BU-Schlüssel; other
+  accounts get the classic 2-digit key.
   VAT lines that cannot be matched to a net line stay as plain rows.
 """
 
@@ -275,13 +276,18 @@ _NUMERIC_COLS = {
 }  # fmt: skip
 
 
-# SKR03 VAT accounts -> (direction, rate). Classic BU keys: 2=USt 7, 3=USt 19, 8=VSt 7, 9=VSt 19.
-SKR03_TAX_ACCOUNTS: dict[str, tuple[str, int]] = {
-    "1771": ("out", 7), "1776": ("out", 19), "1571": ("in", 7), "1576": ("in", 19),
+# VAT accounts per SKR -> (direction, rate). Classic BU keys: 2=USt 7, 3=USt 19, 8=VSt 7, 9=VSt 19.
+TAX_ACCOUNTS: dict[str, dict[str, tuple[str, int]]] = {
+    "03": {"1771": ("out", 7), "1776": ("out", 19), "1571": ("in", 7), "1576": ("in", 19)},
+    "04": {"3801": ("out", 7), "3806": ("out", 19), "1401": ("in", 7), "1406": ("in", 19)},
 }  # fmt: skip
 BU_KEYS = {("out", 7): "2", ("out", 19): "3", ("in", 7): "8", ("in", 19): "9"}
-# SKR03 Automatikkonten: DATEV derives the tax itself, a BU key would be an error.
-SKR03_AUTOMATIC = {"3300", "3400", "8300", "8400", "8736", "3736"}
+# Automatikkonten: DATEV derives the tax itself, a BU key would be an error.
+AUTOMATIC: dict[str, set[str]] = {
+    "03": {"3300", "3400", "8300", "8400", "8736", "3736"},
+    "04": {"5300", "5400", "4300", "4400", "4736", "5736"},
+}
+SKR03_TAX_ACCOUNTS, SKR03_AUTOMATIC = TAX_ACCOUNTS["03"], AUTOMATIC["03"]
 
 
 @dataclass
@@ -303,23 +309,24 @@ class DatevRow:
 SKONTO_ACCOUNTS = {f"{p}{n}" for p in ("873", "373", "473", "573") for n in range(10)}
 
 
-def _fold_tax(lines: list[XLine]) -> list[tuple[str, Decimal, str, XLine]]:
+def _fold_tax(lines: list[XLine], skr: str = "03") -> list[tuple[str, Decimal, str, XLine]]:
     """Signed (debit +) legs with VAT folded into the matching net leg -> (account, amount, bu, line)."""
+    taxes, automatic = TAX_ACCOUNTS.get(skr, SKR03_TAX_ACCOUNTS), AUTOMATIC.get(skr, SKR03_AUTOMATIC)
     legs = [[ln.account, ln.debit - ln.credit, "", ln] for ln in lines if ln.debit or ln.credit]
-    for tax in [lg for lg in legs if lg[0] in SKR03_TAX_ACCOUNTS]:
-        direction, rate = SKR03_TAX_ACCOUNTS[tax[0]]
+    for tax in [lg for lg in legs if lg[0] in taxes]:
+        direction, rate = taxes[tax[0]]
         for net in legs:
-            if net is tax or net[0] in SKR03_TAX_ACCOUNTS or net[2] or (net[1] > 0) != (tax[1] > 0):
+            if net is tax or net[0] in taxes or net[2] or (net[1] > 0) != (tax[1] > 0):
                 continue
             if abs((abs(net[1]) * rate / 100).quantize(Decimal("0.01")) - abs(tax[1])) <= Decimal("0.01"):
                 net[1] += tax[1]
-                net[2] = "" if net[0] in SKR03_AUTOMATIC else BU_KEYS[(direction, rate)]
+                net[2] = "" if net[0] in automatic else BU_KEYS[(direction, rate)]
                 tax[1] = Decimal(0)
                 break
     return [(a, v, bu, ln) for a, v, bu, ln in legs if v]
 
 
-def datev_rows(entry: XEntry, personal: dict[str, str] | None = None) -> list[DatevRow]:
+def datev_rows(entry: XEntry, personal: dict[str, str] | None = None, skr: str = "03") -> list[DatevRow]:
     """Greedy pairwise split of debits against credits; the taxed leg goes to Gegenkonto
     (DATEV applies the BU-Schlüssel to the Gegenkonto). ``personal`` maps collective
     receivable/payable account codes to the entry partner's personal account."""
@@ -328,7 +335,7 @@ def datev_rows(entry: XEntry, personal: dict[str, str] | None = None) -> list[Da
     if any(ln.account in SKONTO_ACCOUNTS for ln in entry.lines):
         skonto = sum((abs(ln.debit - ln.credit) for ln in entry.lines if ln.account in SKONTO_ACCOUNTS), Decimal(0))
         entry = replace(entry, lines=[ln for ln in entry.lines if ln.account not in SKONTO_ACCOUNTS])
-    legs = [(personal.get(a, a), v, bu, ln) for a, v, bu, ln in _fold_tax(entry.lines)]
+    legs = [(personal.get(a, a), v, bu, ln) for a, v, bu, ln in _fold_tax(entry.lines, skr)]
     debits = [[a, v, bu, ln] for a, v, bu, ln in legs if v > 0]
     credits = [[a, -v, bu, ln] for a, v, bu, ln in legs if v < 0]
     rows: list[DatevRow] = []
@@ -400,7 +407,7 @@ def datev_booking_csv(
             personal = {code: str(partner_accounts[e.partner_id]) for code in collective_accounts if code}
         vat = re.sub(r"\s", "", e.partner_vat.upper())
         eu_vat = vat if re.match(r"^[A-Z]{2}[0-9A-Z]+$", vat) and vat[:2] in EU_VAT_PREFIXES and vat[:2] != home else ""
-        for k, r in enumerate(datev_rows(e, personal)):
+        for k, r in enumerate(datev_rows(e, personal, settings.get("skr", "03"))):
             fx = e.fx_currency and e.fx_amount > 0 and k == 0 and r.amount > 0
             row = {
                 "Umsatz (ohne Soll/Haben-Kz)": _amt(e.fx_amount if fx else r.amount), "Soll/Haben-Kennzeichen": r.sh,

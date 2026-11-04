@@ -316,7 +316,7 @@ async def _clearing_account(session: AsyncSession, svc: Any, code: str) -> uuid.
         tpl = await session.scalar(
             select(GLAccount.template).where(GLAccount.tenant_id == tenant, GLAccount.template.is_not(None)).limit(1)
         )
-        code = "1360" if tpl == "de_skr03" else ""
+        code = {"de_skr03": "1360", "de_skr04": "1460"}.get(tpl or "", "")
     if code:
         acc = await session.scalar(select(GLAccount.id).where(GLAccount.tenant_id == tenant, GLAccount.code == code))
         if acc is not None:

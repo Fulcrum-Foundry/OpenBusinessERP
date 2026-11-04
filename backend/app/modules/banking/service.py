@@ -35,8 +35,8 @@ from app.modules.sales.service import SalesError, SalesService
 
 ZERO = Decimal(0)
 SOURCE_BANK = "bank_transaction"
-# Chart fallbacks for the write-off account: SKR03 "Sonstige betriebliche Aufwendungen", IFRS "Other operating expenses".
-DEFAULT_WRITEOFF_CODES = ("4900", "5500")
+# Chart fallbacks for the write-off account: "Sonstige betriebliche Aufwendungen" SKR03/SKR04, IFRS "Other operating expenses".
+DEFAULT_WRITEOFF_CODES = ("4900", "6300", "5500")
 
 
 class BankingError(Exception):

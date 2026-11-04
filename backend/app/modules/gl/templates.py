@@ -163,17 +163,115 @@ DE_SKR03: list[tuple[str, str, str, str | None, bool]] = [
     ("4985", "Werkzeuge und Kleingeräte", X, None, True),
 ]
 
+DE_SKR04: list[tuple[str, str, str, str | None, bool]] = [
+    # Anlagevermögen
+    ("0135", "EDV-Software", A, None, True),
+    ("0400", "Technische Anlagen und Maschinen", A, None, True),
+    ("0520", "Pkw", A, None, True),
+    ("0540", "Lkw", A, None, True),
+    ("0650", "Büroeinrichtung", A, None, True),
+    ("0670", "Geringwertige Wirtschaftsgüter", A, None, True),
+    ("0690", "Sonstige Betriebs- und Geschäftsausstattung", A, None, True),
+    # Umlaufvermögen
+    ("1080", "Unfertige Leistungen (Bestand)", A, None, True),
+    ("1140", "Bestand Waren", A, None, True),
+    ("1200", "Forderungen aus Lieferungen und Leistungen", A, None, True),
+    ("1300", "Sonstige Vermögensgegenstände", A, None, True),
+    ("1370", "Durchlaufende Posten", A, None, True),
+    ("1400", "Abziehbare Vorsteuer", A, None, True),
+    ("1401", "Abziehbare Vorsteuer 7 %", A, None, True),
+    ("1406", "Abziehbare Vorsteuer 19 %", A, None, True),
+    ("1407", "Vorsteuer nach § 13b UStG 19 %", A, None, True),
+    ("1433", "Bezahlte Einfuhrumsatzsteuer", A, None, True),
+    ("1460", "Geldtransit", A, None, True),
+    ("1600", "Kasse", A, None, True),
+    ("1800", "Bank", A, None, True),
+    ("1900", "Aktive Rechnungsabgrenzung", A, None, True),
+    # Eigenkapital
+    ("2100", "Privatentnahmen allgemein", E, None, True),
+    ("2180", "Privateinlagen", E, None, True),
+    ("2900", "Gezeichnetes Kapital", E, None, True),
+    ("2920", "Kapitalrücklage", E, None, True),
+    ("2970", "Gewinnvortrag vor Verwendung", E, None, True),
+    ("2978", "Verlustvortrag vor Verwendung", E, None, True),
+    # Verbindlichkeiten / Rückstellungen
+    ("3040", "Steuerrückstellungen", L, None, True),
+    ("3070", "Sonstige Rückstellungen", L, None, True),
+    ("3150", "Verbindlichkeiten gegenüber Kreditinstituten", L, None, True),
+    ("3250", "Erhaltene Anzahlungen", L, None, True),
+    ("3300", "Verbindlichkeiten aus Lieferungen und Leistungen", L, None, True),
+    ("3500", "Sonstige Verbindlichkeiten", L, None, True),
+    ("3720", "Verbindlichkeiten aus Lohn und Gehalt", L, None, True),
+    ("3730", "Verbindlichkeiten aus Lohn- und Kirchensteuer", L, None, True),
+    ("3740", "Verbindlichkeiten im Rahmen der sozialen Sicherheit", L, None, True),
+    ("3800", "Umsatzsteuer", L, None, True),
+    ("3801", "Umsatzsteuer 7 %", L, None, True),
+    ("3806", "Umsatzsteuer 19 %", L, None, True),
+    ("3820", "Umsatzsteuer-Vorauszahlungen", L, None, True),
+    ("3837", "Umsatzsteuer nach § 13b UStG 19 %", L, None, True),
+    ("3840", "Umsatzsteuer Vorjahr", L, None, True),
+    ("3900", "Passive Rechnungsabgrenzung", L, None, True),
+    # Erlöse / Erträge
+    ("4100", "Steuerfreie Umsätze § 4 Nr. 8 ff. UStG", I, None, True),
+    ("4125", "Steuerfreie innergemeinschaftliche Lieferungen", I, None, True),
+    ("4185", "Erlöse als Kleinunternehmer i.S.d. § 19 Abs. 1 UStG", I, None, True),
+    ("4200", "Erlöse", I, None, True),
+    ("4300", "Erlöse 7 % USt", I, None, True),
+    ("4337", "Erlöse aus Leistungen nach § 13b UStG", I, None, True),
+    ("4400", "Erlöse 19 % USt", I, None, True),
+    ("4736", "Gewährte Skonti 19 % USt", I, None, True),
+    ("4830", "Sonstige betriebliche Erträge", I, None, True),
+    ("4840", "Erträge aus Kursdifferenzen", I, None, True),
+    ("7100", "Sonstige Zinsen und ähnliche Erträge", I, None, True),
+    # Aufwand
+    ("5300", "Wareneingang 7 % Vorsteuer", X, None, True),
+    ("5400", "Wareneingang 19 % Vorsteuer", X, None, True),
+    ("5736", "Erhaltene Skonti 19 % Vorsteuer", X, None, True),
+    ("5900", "Fremdleistungen", X, None, True),
+    ("6000", "Löhne und Gehälter", X, None, True),
+    ("6010", "Löhne", X, None, True),
+    ("6020", "Gehälter", X, None, True),
+    ("6110", "Gesetzliche soziale Aufwendungen", X, None, True),
+    ("6200", "Abschreibungen auf immaterielle Vermögensgegenstände", X, None, True),
+    ("6220", "Abschreibungen auf Sachanlagen", X, None, True),
+    ("6260", "Sofortabschreibung GWG", X, None, True),
+    ("6300", "Sonstige betriebliche Aufwendungen", X, None, True),
+    ("6310", "Miete", X, None, True),
+    ("6325", "Gas, Strom, Wasser", X, None, True),
+    ("6400", "Versicherungen", X, None, True),
+    ("6420", "Beiträge", X, None, True),
+    ("6495", "Wartungskosten für Hard- und Software", X, None, True),
+    ("6530", "Laufende Kfz-Betriebskosten", X, None, True),
+    ("6600", "Werbekosten", X, None, True),
+    ("6640", "Bewirtungskosten", X, None, True),
+    ("6650", "Reisekosten Arbeitnehmer", X, None, True),
+    ("6800", "Porto", X, None, True),
+    ("6805", "Telefon", X, None, True),
+    ("6815", "Bürobedarf", X, None, True),
+    ("6825", "Rechts- und Beratungskosten", X, None, True),
+    ("6830", "Buchführungskosten", X, None, True),
+    ("6845", "Werkzeuge und Kleingeräte", X, None, True),
+    ("6855", "Nebenkosten des Geldverkehrs", X, None, True),
+    ("6880", "Aufwendungen aus Kursdifferenzen", X, None, True),
+    ("7300", "Zinsen und ähnliche Aufwendungen", X, None, True),
+    ("7600", "Körperschaftsteuer", X, None, True),
+    ("7610", "Gewerbesteuer", X, None, True),
+]
+
 # Sales accounts by VAT rate: rate -> (revenue, output VAT). Other rates post to the 'revenue'/'vat' roles.
 SALES_RATE_ACCOUNTS: dict[str, dict[Decimal, tuple[str, str]]] = {
     "de_skr03": {Decimal(19): ("8400", "1776"), Decimal(7): ("8300", "1771")},
+    "de_skr04": {Decimal(19): ("4400", "3806"), Decimal(7): ("4300", "3801")},
 }
 # Purchase accounts by VAT rate: rate -> (expense, input VAT); expense applies to bills without a goods receipt.
 PURCHASE_RATE_ACCOUNTS: dict[str, dict[Decimal, tuple[str, str]]] = {
     "de_skr03": {Decimal(19): ("3400", "1576"), Decimal(7): ("3300", "1571")},
+    "de_skr04": {Decimal(19): ("5400", "1406"), Decimal(7): ("5300", "1401")},
 }
 # 0 % revenue by the invoice's tax treatment (see zero_rate_kind).
 ZERO_RATE_REVENUE: dict[str, dict[str, str]] = {
     "de_skr03": {"reverse_charge": "8337", "intra_eu": "8125", "small_business": "8195", "exempt": "8100"},
+    "de_skr04": {"reverse_charge": "4337", "intra_eu": "4125", "small_business": "4185", "exempt": "4100"},
 }
 
 _REVERSE = ("reverse charge", "13b", "steuerschuldnerschaft", "autoliquidation", "inversione contabile",
@@ -198,4 +296,5 @@ def zero_rate_kind(tax_note: str) -> str:
 TEMPLATES: dict[str, list[tuple[str, str, str, str | None, bool]]] = {
     "ifrs_generic": IFRS_GENERIC,
     "de_skr03": DE_SKR03,
+    "de_skr04": DE_SKR04,
 }

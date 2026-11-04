@@ -54,6 +54,24 @@ EXPENSE_ACCOUNTS: dict[str, dict[str, str]] = {
         "loan": "0630",
         "interest": "2100",
     },
+    "de_skr04": {
+        "bank": "1800",
+        "equity": "2900",
+        "input_vat": "1406",
+        "goods": "5400",
+        "services": "5900",
+        "rent": "6310",
+        "wages": "6020",
+        "marketing": "6600",
+        "software": "6495",
+        "other": "6300",
+        "revenue": "4400",
+        "payables": "3300",
+        "inventory": "1140",
+        "cogs": "5400",
+        "loan": "3150",
+        "interest": "7300",
+    },
     "ifrs_generic": {
         "bank": "1710",
         "equity": "3000",
@@ -1845,7 +1863,9 @@ async def _ensure_ledger(session: AsyncSession, country: str, start: date, end: 
     tpl = await session.scalar(select(GLAccount.template).where(mine, GLAccount.template.is_not(None)).limit(1))
     if tpl is None:
         if await session.scalar(select(GLAccount.id).where(mine).limit(1)) is not None:
-            raise BusinessDemoError("A custom chart of accounts is loaded; demo data needs de_skr03 or ifrs_generic")
+            raise BusinessDemoError(
+                "A custom chart of accounts is loaded; demo data needs de_skr03, de_skr04 or ifrs_generic"
+            )
         tpl = "de_skr03" if country == "DE" else "ifrs_generic"
         await gl.load_template(tpl)
     if tpl not in EXPENSE_ACCOUNTS:

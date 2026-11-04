@@ -93,6 +93,7 @@ ROLES = ("receivable", "revenue", "vat", "bank")
 # Default account codes per loaded chart template; overridden by oe_sales_account_map.
 DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
     "de_skr03": {"receivable": "1400", "revenue": "8400", "vat": "1776", "bank": "1200"},
+    "de_skr04": {"receivable": "1200", "revenue": "4400", "vat": "3806", "bank": "1800"},
     "ifrs_generic": {"receivable": "1400", "revenue": "4000", "vat": "2300", "bank": "1710"},
 }
 
@@ -1101,7 +1102,7 @@ class SalesService:
                     months[key] -= net * fx
         payables = None
         try:
-            code = "1600" if await self._is_skr03() else "2200"
+            code = {"de_skr03": "1600", "de_skr04": "3300"}.get(await self._chart_template(), "2200")
             tb = await self.gl.trial_balance(None, None)
             row = next((r for r in tb["rows"] if r["code"] == code), None)
             payables = -row["closing"] if row else ZERO
@@ -1176,6 +1177,3 @@ class SalesService:
             ]
 
         return ranked(cust), ranked(items)
-
-    async def _is_skr03(self) -> bool:
-        return await self._chart_template() == "de_skr03"

@@ -221,3 +221,35 @@ async def test_mixed_rate_invoice_splits_revenue_and_vat(svc):
     assert (tb["8400"], tb["1776"]) == (D("-90.00"), D("-17.10"))
     assert (tb["8300"], tb["1771"]) == (D("-49.98"), D("-3.50"))
     assert tb["1400"] == inv.gross_total
+
+
+@pytest_asyncio.fixture
+async def svc04(session):
+    gl = GLService(session)
+    await gl.load_template("de_skr04")
+    await gl.create_fiscal_year("FY2026", date(2026, 1, 1), date(2026, 12, 31))
+    return SalesService(session)
+
+
+async def test_skr04_mixed_rate_invoice_splits_revenue_and_vat(svc04):
+    inv = await svc04.create("invoice", lines=LINES, doc_date=DAY, customer_name="ACME")
+    await svc04.issue_invoice(inv.id)
+    tb = await _closing_by_code(svc04)
+    assert (tb["4400"], tb["3806"]) == (D("-90.00"), D("-17.10"))
+    assert (tb["4300"], tb["3801"]) == (D("-49.98"), D("-3.50"))
+    assert tb["1200"] == inv.gross_total
+
+
+async def test_skr04_zero_rate_revenue_follows_the_tax_note(svc04):
+    line = LineData("Montage", "M-1", D("1"), D("1000"), D("0"), D("0"))
+    for note, code in (
+        ("Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG)", "4337"),
+        ("Steuerfreie innergemeinschaftliche Lieferung", "4125"),
+        ("VAT exempt (§ 19 UStG)", "4185"),
+        ("Steuerfrei nach § 4 Nr. 8 UStG", "4100"),
+    ):
+        inv = await svc04.create("invoice", lines=[line], doc_date=DAY, customer_name="Bau GmbH", tax_note=note)
+        await svc04.issue_invoice(inv.id)
+        tb = await _closing_by_code(svc04)
+        assert tb[code] == D("-1000.00"), note
+    assert tb.get("4400", 0) == 0 and tb.get("3806", 0) == 0

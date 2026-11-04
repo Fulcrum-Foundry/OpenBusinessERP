@@ -290,3 +290,33 @@ def test_datev_beleglink_and_belegfeld2():
     assert r["Belegfeld 2"] == '"040426"' and r["Fälligkeit"] == "04042026"
     (plain,) = _rows([gx.XEntry("X", date(2026, 3, 5), "m", e.lines, due_date=e.due_date)])
     assert plain["Beleglink"] == plain["Belegfeld 2"] == '""'
+
+
+def test_skr04_tax_fold_uses_skr04_accounts():
+    e = gx.XEntry(
+        "RE-1", date(2026, 1, 2), "Rechnung",
+        [gx.XLine("1200", debit=D("119")), gx.XLine("4400", credit=D("100")), gx.XLine("3806", credit=D("19"))],
+    )  # fmt: skip
+    rows = gx.datev_rows(e, skr="04")
+    assert [(r.konto, r.gegenkonto, r.amount, r.bu) for r in rows] == [("1200", "4400", D("119"), "")]
+    # SKR03 rules do not know 3806 and leave it as its own row
+    assert len(gx.datev_rows(e)) == 2
+
+
+def test_skr04_role_maps_point_at_template_accounts():
+    from app.core.business_demo import EXPENSE_ACCOUNTS
+    from app.modules.gl import fx_posting, templates
+    from app.modules.inventory import service as inv
+    from app.modules.purchasing import service as pur
+    from app.modules.sales import service as sal
+
+    codes = {c for c, *_ in templates.TEMPLATES["de_skr04"]}
+    used = {
+        *sal.DEFAULT_ACCOUNTS["de_skr04"].values(), *pur.DEFAULT_ACCOUNTS["de_skr04"].values(),
+        *inv.DEFAULT_ACCOUNTS["de_skr04"].values(), *EXPENSE_ACCOUNTS["de_skr04"].values(),
+        *fx_posting.FX_ACCOUNTS["de_skr04"], *templates.ZERO_RATE_REVENUE["de_skr04"].values(),
+        *(c for pair in templates.SALES_RATE_ACCOUNTS["de_skr04"].values() for c in pair),
+        *(c for pair in templates.PURCHASE_RATE_ACCOUNTS["de_skr04"].values() for c in pair),
+        *gx.TAX_ACCOUNTS["04"], pur.GRNI_FALLBACK["de_skr04"],
+    }  # fmt: skip
+    assert used <= codes, used - codes

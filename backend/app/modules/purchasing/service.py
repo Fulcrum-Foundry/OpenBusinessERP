@@ -66,6 +66,14 @@ DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
         "payables": "1600",
         "bank": "1200",
     },
+    "de_skr04": {
+        "inventory": "1140",
+        "grni": "3500",
+        "expense": "5400",
+        "input_vat": "1406",
+        "payables": "3300",
+        "bank": "1800",
+    },
     "ifrs_generic": {
         "inventory": "1300",
         "grni": "2550",
@@ -78,7 +86,7 @@ DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
 
 
 # Charts seeded before the dedicated GRNI account existed keep posting to the old clearing account.
-GRNI_FALLBACK: dict[str, str] = {"de_skr03": "1700", "ifrs_generic": "2500"}
+GRNI_FALLBACK: dict[str, str] = {"de_skr03": "1700", "de_skr04": "3500", "ifrs_generic": "2500"}
 
 
 class PurchasingError(Exception):
@@ -709,7 +717,7 @@ class PurchasingService:
     async def _rate_split(
         self, bill: PurchasingBill, acc: dict[str, uuid.UUID]
     ) -> tuple[dict[uuid.UUID, Decimal], dict[uuid.UUID, Decimal]]:
-        """Net and input VAT per account by the lines' VAT rate (SKR03: 7 % -> 3300/1571, 19 % -> 3400/1576)."""
+        """Net and input VAT per account by the lines' VAT rate (e.g. SKR03 19 % -> 3400/1576, SKR04 19 % -> 5400/1406)."""
         tpl = await self.session.scalar(
             select(GLAccount.template)
             .where(GLAccount.tenant_id == self.tenant_id, GLAccount.template.is_not(None))

@@ -473,6 +473,9 @@ async def export_file(
     if date_to < date_from:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "date_to before date_from")
     settings = gx.read_export_settings()
+    tpl = await SalesService(session, svc.tenant_id)._chart_template()
+    if tpl in ("de_skr03", "de_skr04"):  # the loaded chart decides the SKR, not a stale setting
+        settings = {**settings, "skr": tpl[-2:]}
     biz = read_business_settings()
     now = datetime.now()
     stamp = f"{date_from:%Y%m%d}_{date_to:%Y%m%d}"
