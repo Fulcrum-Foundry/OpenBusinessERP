@@ -59,6 +59,8 @@ class SalesDocument(Base):
     delivery_end: Mapped[date | None] = mapped_column(Date, nullable=True)
     tax_note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
     payment_terms: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    # BT-10: Leitweg-ID for a public-sector buyer. Used by the e-invoice export only.
+    buyer_reference: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     created_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Last successful e-mail delivery; the full history is in oe_sales_send_log.
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

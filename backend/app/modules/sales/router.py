@@ -31,15 +31,18 @@ Endpoints ({kind} is quotes | orders | invoices):
 
 from __future__ import annotations
 
+import asyncio
+import io
 import uuid
 from collections.abc import Awaitable
 from datetime import date
 from decimal import Decimal
 from typing import TypeVar
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
+from starlette.responses import StreamingResponse
 
 from app.core.content_disposition import attachment_disposition
 from app.core.email.service import EmailService
@@ -399,6 +402,85 @@ async def dunning_pdf(
             "Content-Language": lang(doc.language),
         },
     )
+
+
+@router.get("/invoices/{doc_id}/einvoice", response_model=None)
+async def invoice_einvoice(
+    doc_id: uuid.UUID,
+    _user_id: CurrentUserId,
+    session: SessionDep,
+    fmt: str = Query("xrechnung", alias="format"),
+    dry_run: bool = Query(False),
+    embed: bool = Query(False),
+    locale: str | None = Query(None, max_length=10),
+    accept_language: str | None = Header(None, alias="accept-language"),
+    svc: SalesService = Depends(_svc),
+    _perm: None = Depends(RequirePermission("sales.read")),
+):
+    """EN 16931 e-invoice of an issued invoice, or its validation result with ``dry_run=true``.
+
+    Same parameters and response shapes as the finance export, so one screen serves both.
+    """
+    from app.modules.einvoice import (
+        FATAL,
+        SUPPORTED_PROFILES,
+        render_einvoice,
+        render_einvoice_pdf,
+        violations_for,
+    )
+    from app.modules.einvoice.cii import EInvoiceError
+    from app.modules.einvoice.pdf_translations import resolve_pdf_locale
+    from app.modules.sales.einvoice import einvoice_inputs
+
+    profile = (fmt or "xrechnung").strip().lower()
+    if profile not in SUPPORTED_PROFILES:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"unknown e-invoice format {fmt!r}; use one of {', '.join(SUPPORTED_PROFILES)}",
+        )
+    doc = await _call(svc.get(doc_id, "invoice"))
+    if doc.status == "draft":
+        raise HTTPException(status.HTTP_409_CONFLICT, "issue the invoice before exporting an e-invoice")
+    invoice, line_items, defaults = await einvoice_inputs(session, doc)
+
+    if dry_run:
+        found = violations_for(invoice=invoice, line_items=line_items, profile=profile, defaults=defaults)
+        problems = [v.message for v in found if v.severity == FATAL]
+        return {
+            "format": profile,
+            "valid": not problems,
+            "problems": problems,
+            "violations": [
+                {"rule_id": v.rule_id, "severity": v.severity, "message": v.message, "term": v.term, "params": v.params}
+                for v in found
+            ],
+        }
+
+    pdf_locale: str | None = None
+    try:
+        if embed:
+            pdf_locale = resolve_pdf_locale(locale, accept_language)
+            filename, media_type, body = await asyncio.to_thread(
+                render_einvoice_pdf,
+                invoice=invoice,
+                line_items=line_items,
+                profile=profile,
+                defaults=defaults,
+                locale=pdf_locale,
+            )
+        else:
+            filename, media_type, body = await asyncio.to_thread(
+                render_einvoice, invoice=invoice, line_items=line_items, profile=profile, defaults=defaults
+            )
+    except EInvoiceError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"invoice is not EN 16931 complete for {profile}: {exc}. Call with ?dry_run=true for the full list.",
+        ) from exc
+    headers = {"Content-Disposition": attachment_disposition(filename)}
+    if pdf_locale is not None:
+        headers["Content-Language"] = pdf_locale
+    return StreamingResponse(io.BytesIO(body), media_type=media_type, headers=headers)
 
 
 @router.get("/{kind}/{doc_id}/pdf/")

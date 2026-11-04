@@ -20,6 +20,7 @@ import { LineEditor } from './components/LineEditor';
 import { TotalsPanel } from './components/TotalsPanel';
 import { ActivityCard, AttachmentsCard, PaymentLinkCard, PaymentsCard, RelatedDocsCard } from './components/DocSidePanels';
 import { StickyActionBar } from './components/StickyActionBar';
+import { EInvoiceCard } from './components/EInvoiceCard';
 import { PdfPreviewPanel } from './components/PdfPreviewPanel';
 import type { ActionMenuItem } from './components/ActionMenu';
 import { ConvertDialog } from './modals/ConvertDialog';
@@ -317,7 +318,7 @@ export function SalesDocumentPage() {
         </div>
 
         <aside className="space-y-4">
-          <CustomerCard form={form} set={patch} editable={editable} error={visibleErrors.customer} />
+          <CustomerCard form={form} set={patch} editable={editable} error={visibleErrors.customer} showBuyerReference={kind === 'invoices'} />
           <TotalsPanel
             totals={totals}
             currency={cur}
@@ -338,6 +339,7 @@ export function SalesDocumentPage() {
           )}
           {doc?.kind === 'invoice' && doc.status !== 'draft' && <PaymentsCard doc={doc} onRecord={canPay ? () => setDialog('pay') : undefined} />}
           {doc?.kind === 'invoice' && <PaymentLinkCard doc={doc} />}
+          {doc && <EInvoiceCard doc={doc} />}
           <RelatedDocsCard related={related.data} />
           {doc && <ActivityCard entries={activity.data} loading={activity.isLoading} />}
           <AttachmentsCard />

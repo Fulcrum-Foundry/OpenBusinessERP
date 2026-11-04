@@ -18,6 +18,7 @@ export interface SalesForm {
   delivery_end: string;
   tax_note: string;
   payment_terms: string;
+  buyer_reference: string;
   lines: SalesLine[];
 }
 
@@ -52,6 +53,7 @@ export const toForm = (d?: SalesDoc, currency = 'EUR', taxRate = '0'): SalesForm
   delivery_end: d?.delivery_end ?? '',
   tax_note: d?.tax_note ?? '',
   payment_terms: d?.payment_terms ?? '',
+  buyer_reference: d?.buyer_reference ?? '',
   lines:
     d?.lines.map((l) => ({
       ...l,
@@ -79,6 +81,7 @@ export function toBody(f: SalesForm): SalesDocInput {
     delivery_end: f.delivery_end || null,
     tax_note: f.tax_note,
     payment_terms: f.payment_terms,
+    buyer_reference: f.buyer_reference,
     lines: f.lines.map(({ item_id, sku, description, qty, unit_price, discount_pct, tax_rate }) => ({
       item_id: item_id ?? null,
       sku,

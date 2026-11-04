@@ -75,6 +75,7 @@ export interface SalesDoc extends SalesDocSummary {
   delivery_end: string | null;
   tax_note: string;
   payment_terms?: string;
+  buyer_reference?: string;
   lines: SalesLine[];
   payments: SalesPayment[];
 }
@@ -96,6 +97,7 @@ export interface SalesDocInput {
   delivery_end?: string | null;
   tax_note?: string;
   payment_terms?: string;
+  buyer_reference?: string;
   lines?: Omit<SalesLine, 'id' | 'line_no' | 'net' | 'tax' | 'gross'>[];
 }
 

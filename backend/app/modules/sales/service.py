@@ -87,6 +87,7 @@ EXTRA_FIELDS = (
     "delivery_end",
     "tax_note",
     "payment_terms",
+    "buyer_reference",
 )
 SYSTEM_STATUSES = {"converted", "invoiced", "partially_paid", "paid"}
 ROLES = ("receivable", "revenue", "vat", "bank")
