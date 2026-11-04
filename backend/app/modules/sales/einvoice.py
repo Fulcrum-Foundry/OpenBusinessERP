@@ -16,6 +16,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.contacts.leitweg import contact_leitweg_id
 from app.modules.contacts.models import Contact
 from app.modules.finance.einvoice_parties import buyer_party_from_contact
 from app.modules.finance.einvoice_settings_service import einvoice_defaults
@@ -83,8 +84,11 @@ async def einvoice_inputs(
     """Return ``(invoice, line_items, defaults)`` for the e-invoice engine."""
     lines = _line_dicts(doc)
     ei: dict[str, Any] = {}
-    if (doc.buyer_reference or "").strip():
-        ei["buyer_reference"] = doc.buyer_reference.strip()
+    buyer_reference = (doc.buyer_reference or "").strip()
+    if not buyer_reference and doc.customer_id:
+        buyer_reference = await contact_leitweg_id(session, doc.customer_id)
+    if buyer_reference:
+        ei["buyer_reference"] = buyer_reference
     if (doc.payment_terms or "").strip():
         ei["payment_terms"] = doc.payment_terms.strip()
     # The reason belongs to the exempting groups only; stating it on a document

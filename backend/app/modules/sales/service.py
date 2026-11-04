@@ -12,6 +12,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.business_settings import read_business_settings
+from app.modules.contacts.leitweg import contact_leitweg_id
 from app.modules.gl.fx_posting import FxRateMissingError, q_rate, rate_for, settlement, settlement_lines
 from app.modules.gl.models import DEFAULT_TENANT, GLAccount, GLJournalEntry
 from app.modules.gl.service import GLError, GLService, LineInput, base_currency
@@ -352,6 +353,8 @@ class SalesService:
     ) -> SalesDocument:
         if kind not in KINDS:
             raise SalesValidationError(f"Unknown kind {kind}")
+        if not (data.get("buyer_reference") or "").strip() and data.get("customer_id"):
+            data = {**data, "buyer_reference": await contact_leitweg_id(self.session, data["customer_id"])}
         doc = SalesDocument(
             tenant_id=self.tenant_id,
             kind=kind,
