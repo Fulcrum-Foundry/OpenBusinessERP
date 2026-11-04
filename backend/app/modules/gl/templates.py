@@ -278,7 +278,7 @@ AT_EKR: list[tuple[str, str, str, str | None, bool]] = [
     ("3500", "Umsatzsteuer", L, None, True),
     ("3700", "Sonstige Verbindlichkeiten", L, None, True),
     # Klasse 4 Betriebliche Erträge
-    ("4000", "Umsatzerlöse 20 %", I, None, True),
+    ("4000", "Umsatzerlöse", I, None, True),
     ("4800", "Übrige betriebliche Erträge", I, None, True),
     # Klasse 5 Material- und Warenaufwand
     ("5000", "Wareneinsatz", X, None, True),

@@ -270,3 +270,17 @@ async def test_at_and_ch_charts_post_invoices_to_their_role_accounts(session, tp
     tb = await _closing_by_code(svc)
     assert (tb[revenue], tb[vat]) == (D("-1000.00"), -(D(rate) * 10).quantize(D("0.01")))
     assert tb[receivable] == inv.gross_total
+
+
+async def test_at_ekr_mixed_rates_post_to_the_rate_neutral_accounts(session):
+    gl = GLService(session)
+    await gl.load_template("at_ekr")
+    await gl.create_fiscal_year("FY2026", date(2026, 1, 1), date(2026, 12, 31))
+    svc = SalesService(session)
+    lines = [LineData(f"Ware {r}", f"W-{r}", D("1"), D("100"), D("0"), D(r)) for r in ("20", "13", "10")]
+    inv = await svc.create("invoice", lines=lines, doc_date=DAY, customer_name="ACME")
+    await svc.issue_invoice(inv.id)
+    tb = await _closing_by_code(svc)
+    assert (tb["4000"], tb["3500"], tb["2000"]) == (D("-300.00"), D("-43.00"), D("343.00"))
+    names = {r["code"]: r["name"] for r in (await gl.trial_balance(None, None))["rows"]}
+    assert "%" not in names["4000"] and "%" not in names["3500"]
