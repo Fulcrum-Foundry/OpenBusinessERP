@@ -44393,7 +44393,7 @@ const resource = {
     "payments.mode_live": "Modalità live",
     "payments.desc": "Aggiunge un link di pagamento online alle fatture inviate (e-mail e PDF). Le fatture pagate vengono registrate automaticamente sul conto transitorio. Le chiavi sono memorizzate cifrate.",
     "payments.admin_only": "Solo un amministratore può modificare le impostazioni di pagamento.",
-    "payments.provider": "Fornitore",
+    "payments.provider": "Gestore dei pagamenti",
     "payments.provider_none": "Disattivato",
     "payments.clearing_account": "Conto transitorio (codice contabile, facoltativo)",
     "payments.stripe_key": "Chiave segreta Stripe",

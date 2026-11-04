@@ -33,9 +33,7 @@ export function datePatternFor(locale: string, pref: DateFormat = 'auto'): DateP
       new Date(2024, 10, 22),
     );
   } catch {
-    parts = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).formatToParts(
-      new Date(2024, 10, 22),
-    );
+    parts = [];
   }
   const order = parts.filter((p) => p.type === 'day' || p.type === 'month' || p.type === 'year').map((p) => p.type as Field);
   const lit = parts.find((p) => p.type === 'literal')?.value.replace(/[‎‏\s]/g, '') || '.';

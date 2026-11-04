@@ -44143,7 +44143,7 @@ const resource = {
     "payments.mode_live": "Live mode",
     "payments.desc": "Nagdaragdag ng link para magbayad online sa mga ipinadalang invoice (e-mail at PDF). Awtomatikong ibinu-book sa clearing account ang mga bayad na invoice. Naka-encrypt ang pag-iimbak ng mga key.",
     "payments.admin_only": "Administrator lang ang makakapagbago ng mga setting ng pagbabayad.",
-    "payments.provider": "Tagapagbigay",
+    "payments.provider": "Tagaproseso ng bayad",
     "payments.provider_none": "Naka-off",
     "payments.clearing_account": "Clearing account (GL code, opsyonal)",
     "payments.stripe_key": "Lihim na key ng Stripe",

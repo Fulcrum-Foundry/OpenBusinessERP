@@ -1,7 +1,7 @@
 {
   "name": "openbusinesserp-frontend",
   "private": true,
-  "version": "18.4.0",
+  "version": "18.5.0",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {

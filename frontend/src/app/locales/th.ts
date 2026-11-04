@@ -43949,7 +43949,7 @@ const resource = {
     "payments.provider": "ผู้ให้บริการ",
     "payments.provider_none": "ปิด",
     "payments.clearing_account": "บัญชีพัก (รหัสบัญชีแยกประเภท ไม่บังคับ)",
-    "payments.stripe_key": "คีย์ลับของ Stripe",
+    "payments.stripe_key": "คีย์ลับ Stripe",
     "payments.stripe_webhook_secret": "รหัสลับสำหรับลงนาม Webhook ของ Stripe",
     "payments.mollie_key": "คีย์ API ของ Mollie",
     "payments.public_base_url": "ที่อยู่สาธารณะของแอปนี้",

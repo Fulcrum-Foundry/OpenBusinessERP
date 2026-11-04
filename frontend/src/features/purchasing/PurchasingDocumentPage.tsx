@@ -23,6 +23,7 @@ import { PdfPreviewPanel } from './components/PdfPreviewPanel';
 import { ReceiveDialog } from './modals/ReceiveDialog';
 import { PaymentDialog } from './modals/PaymentDialog';
 import { DateField } from '@/shared/ui/DateField';
+import { trimDecimals } from '@/features/sales/lib/form';
 
 const NEW_LABEL: Record<PurchasingKind, string> = { orders: 'New purchase order', bills: 'New bill', 'credit-notes': 'New credit note' };
 const blankLine = (tax: string): PurchasingLine => ({ item_id: null, sku: '', description: '', qty: '1', unit_price: '0', tax_rate: tax, discount_pct: '' });
@@ -50,7 +51,7 @@ const toForm = (d?: PurchasingDoc, currency = 'EUR', tax = '0'): Form => ({
   due_date: d?.due_date ?? '',
   payment_terms_days: d?.payment_terms_days != null ? String(d.payment_terms_days) : '',
   notes: d?.notes ?? '',
-  lines: d?.lines.map((l) => ({ ...l, qty: String(l.qty), unit_price: String(l.unit_price), tax_rate: String(l.tax_rate), discount_pct: l.discount_pct != null ? String(l.discount_pct) : '' })) ?? [blankLine(tax)],
+  lines: d?.lines.map((l) => ({ ...l, qty: trimDecimals(String(l.qty)), unit_price: trimDecimals(String(l.unit_price), 2), tax_rate: String(l.tax_rate), discount_pct: l.discount_pct != null ? trimDecimals(String(l.discount_pct)) : '' })) ?? [blankLine(tax)],
 });
 
 export function PurchasingDocumentPage() {
