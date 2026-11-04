@@ -515,7 +515,7 @@ CASES: dict[str, Case] = {
                 ("Framewell Media Library Ltd", "GB", "software"),
             ],
             expenses=[
-                ("Salaries", "wages", 52000),
+                ("Salaries", "wages", 44000),
                 ("Freelance developers", "services", 8800),
                 ("Studio rent", "rent", 4600),
                 ("Hosting and SaaS tools", "software", 2100),
@@ -825,7 +825,7 @@ CASES: dict[str, Case] = {
             ],
             expenses=[
                 ("Office rent", "rent", 4800),
-                ("Salaries", "wages", 52000),
+                ("Salaries", "wages", 44000),
                 ("Outsourced payroll runs", "services", 1600),
                 ("Tax software and data centre", "software", 2400),
                 ("Liability insurance and chamber fees", "other", 900),
@@ -950,6 +950,7 @@ CASES: dict[str, Case] = {
             payment_days=14,
             quotes=34,
             lines_per_doc=(1, 3),
+            extra={"rates": {"Property management": 10, "Service charges": 10}},
         ),
         Case(
             key="medical_practice",
@@ -1120,6 +1121,63 @@ CASES: dict[str, Case] = {
             quotes=36,
             lines_per_doc=(1, 3),
             extra={"walk_in": "Salon guests (card and cash)", "walk_in_note": "Salon takings"},
+        ),
+        Case(
+            key="alpine_inn",
+            company="Gasthof Mattenrain AG",
+            country="CH",
+            industry="Inn and bakery",
+            summary="Family-run mountain inn with 24 rooms, seminar room and in-house bakery, Emmental.",
+            customers=[
+                ("Wanderverein Blaumatt", "CH"),
+                ("Treuhand Sonnenhalde AG", "CH"),
+                ("Skiclub Grindelmoos", "CH"),
+                ("Seminarhaus Ruchenberg GmbH", "CH"),
+                ("Familie Zbinden-Aeschlimann", "CH"),
+                ("Reisebüro Talfahrt AG", "CH"),
+                ("Musikgesellschaft Hinterweid", "CH"),
+                ("Landmetzgerei Oberacher", "CH"),
+                ("Firma Hornberger Holzbau", "CH"),
+                ("Kurhaus Lindenmoos Betriebs AG", "CH"),
+                ("Bergbahnen Rotenegg AG", "CH"),
+                ("Wellnessreisen Alpenklee GmbH", "DE"),
+            ],
+            suppliers=[
+                ("Mühle Hasliberger AG", "CH", "goods"),
+                ("Molkerei Gürbetal Genossenschaft", "CH", "goods"),
+                ("Getränkehandel Brünnli AG", "CH", "goods"),
+                ("Liegenschaften Dorfmatt AG", "CH", "rent"),
+                ("Hotelsoftware Zytglogge GmbH", "CH", "software"),
+            ],
+            expenses=[
+                ("Salaries", "wages", 44000),
+                ("Property rent", "rent", 6800),
+                ("Laundry and cleaning", "services", 3200),
+                ("Booking and POS software", "software", 480),
+                ("Regional tourism marketing", "marketing", 1100),
+            ],
+            deals=[
+                "Annual club weekend Wanderverein Blaumatt",
+                "Seminar series Treuhand Sonnenhalde",
+                "Ski camp accommodation Grindelmoos",
+                "Wedding with 80 guests",
+                "Bakery supply to Kurhaus Lindenmoos",
+                "Group tour package Talfahrt",
+            ],
+            tasks=[
+                "Confirm Christmas market bakery orders",
+                "Update room rates for winter season",
+                "Renew food safety inspection",
+                "Order flour and butter for December",
+                "Send VAT return for the quarter",
+            ],
+            quotes=32,
+            payment_days=30,
+            extra={
+                "rates": {"Accommodation": 3.8, "Bakery": 2.6},
+                "walk_in": "Walk-in guests (card and cash)",
+                "walk_in_note": "Restaurant and bakery takings",
+            },
         ),
         Case(
             key="restaurant_cafe",
@@ -1712,6 +1770,19 @@ ITEMS: dict[str, list[_I]] = {
         ("SB-DDR", "Day conference package, per person", "person", "Conferences", "59.00", "0", False, 40),
         ("SB-ROOM", "Seminar room, full day", "day", "Conferences", "390.00", "0", False, 2),
     ],
+    "alpine_inn": [
+        ("GM-SGL", "Single room with breakfast, per night", "night", "Accommodation", "135.00", "0", False, 60),
+        ("GM-DBL", "Double room with breakfast, per night", "night", "Accommodation", "198.00", "0", False, 120),
+        ("GM-FAM", "Family room, per night", "night", "Accommodation", "260.00", "0", False, 30),
+        ("GM-SEM", "Seminar room, full day incl. coffee break", "day", "Seminars", "480.00", "0", False, 6),
+        ("GM-MENU", "Three-course dinner, per person", "person", "Dining", "58.00", "19.00", True, 90),
+        ("GM-APERO", "Apéro riche, per person", "person", "Events", "34.00", "12.00", True, 100),
+        ("GM-WEDD", "Wedding package, per person", "person", "Events", "165.00", "62.00", True, 80),
+        ("GM-ZOPF", "Butter braid (Zopf) 500 g", "pcs", "Bakery", "5.80", "2.10", True, 120),
+        ("GM-BROT", "Farmhouse bread 1 kg", "pcs", "Bakery", "6.40", "2.30", True, 120),
+        ("GM-NUSS", "Nut tart (Nusstorte) 24 cm", "pcs", "Bakery", "28.00", "10.50", True, 40),
+        ("GM-SPA", "Sauna and wellness access, per person", "person", "Extras", "22.00", "0", False, 40),
+    ],
     "fitness_studio": [
         ("EQ-MEM", "Monthly membership, unlimited", "month", "Memberships", "59.00", "0", False, 120),
         ("EQ-YOGA", "Yoga membership, monthly", "month", "Memberships", "49.00", "0", False, 40),
@@ -1825,6 +1896,7 @@ PROFILE: dict[str, dict[str, Any]] = {
     "therapy_wellness": {"revenue": 44000, "doc_value": 420, "webshop": True},
     "beauty_salon": {"revenue": 34000, "doc_value": 180, "webshop": True},
     "restaurant_cafe": {"revenue": 78000, "doc_value": 900, "webshop": True},
+    "alpine_inn": {"revenue": 110000, "doc_value": 1500, "webshop": True},
     "small_hotel": {"revenue": 82000, "doc_value": 2600, "webshop": True, "loan": 150000},
     "fitness_studio": {"revenue": 52000, "doc_value": 900, "webshop": True},
     "education_training": {"revenue": 70000},
@@ -1839,7 +1911,8 @@ INVOICE_CONVERSION = D("0.68")  # calibrated: issued invoice value per quote vs.
 SUPPLIER_TERMS = 30
 
 
-_CASE_CURRENCY = {"GB": "GBP", "PL": "PLN"}
+_CASE_CURRENCY = {"GB": "GBP", "PL": "PLN", "CH": "CHF"}
+DEFAULT_CHART = {"DE": "de_skr03", "AT": "at_ekr", "CH": "ch_kmu"}
 
 
 def list_cases() -> list[dict[str, Any]]:
@@ -1902,7 +1975,7 @@ async def _ensure_ledger(session: AsyncSession, country: str, start: date, end: 
             raise BusinessDemoError(
                 "A custom chart of accounts is loaded; demo data needs a bundled chart template"
             )
-        tpl = "de_skr03" if country == "DE" else "ifrs_generic"
+        tpl = DEFAULT_CHART.get(country, "ifrs_generic")
         await gl.load_template(tpl)
     if tpl not in EXPENSE_ACCOUNTS:
         raise BusinessDemoError(f"Chart template {tpl!r} is not supported by the demo data")
@@ -2869,8 +2942,23 @@ def bank_account_name(company: str) -> str:
     return f"{company} current account"
 
 
+# Fictional bank identifiers (not assigned to real institutions) and BBAN lengths per country.
+_IBAN_BANK = {"AT": ("19999", 11), "CH": ("09999", 12)}
+
+
+def _iban_with_check(country: str, bban: str) -> str:
+    digits = "".join(str(int(c, 36)) for c in bban + country) + "00"
+    check = 98 - int(digits) % 97
+    raw = f"{country}{check:02d}{bban}"
+    return " ".join(raw[i : i + 4] for i in range(0, len(raw), 4))
+
+
 def demo_bank_iban(case) -> str:
-    return f"{case.country}00 0000 0000 {zlib.crc32(case.key.encode()) % 10**8:08d}"
+    num = zlib.crc32(case.key.encode())
+    if case.country in _IBAN_BANK:
+        bank, width = _IBAN_BANK[case.country]
+        return _iban_with_check(case.country, bank + f"{num:0{width}d}"[-width:])
+    return f"{case.country}00 0000 0000 {num % 10**8:08d}"
 
 
 async def _seed_bank_account(session, case, tenant, currency, bank_code, bank_acc_id, today) -> None:

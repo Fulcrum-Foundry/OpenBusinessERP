@@ -61,8 +61,8 @@ export const fetchSettings = () => apiGet<SettingsData>('/v1/business-settings/'
 /** Country defaults: VAT rates, suggested chart and whether a small-business VAT exemption exists. */
 const COUNTRY_TAX: Record<string, { rates: [string, number][]; chart?: string; smallBusiness?: string }> = {
   DE: { rates: [['Standard', 19], ['Reduced', 7]], chart: 'de_skr03', smallBusiness: '§ 19 UStG' },
-  AT: { rates: [['Standard', 20], ['Reduced 13', 13], ['Reduced 10', 10]], smallBusiness: '§ 6 Abs. 1 Z 27 UStG' },
-  CH: { rates: [['Standard', 8.1], ['Accommodation', 3.8], ['Reduced', 2.6]], smallBusiness: 'Art. 10 Abs. 2 lit. a MWSTG' },
+  AT: { rates: [['Standard', 20], ['Reduced 13', 13], ['Reduced 10', 10]], chart: 'at_ekr', smallBusiness: '§ 6 Abs. 1 Z 27 UStG' },
+  CH: { rates: [['Standard', 8.1], ['Accommodation', 3.8], ['Reduced', 2.6]], chart: 'ch_kmu', smallBusiness: 'Art. 10 Abs. 2 lit. a MWSTG' },
   FR: { rates: [['Standard', 20], ['Reduced', 5.5]], smallBusiness: 'Art. 293 B CGI' },
   IT: { rates: [['Standard', 22], ['Reduced', 10]] },
   ES: { rates: [['Standard', 21], ['Reduced', 10]] },

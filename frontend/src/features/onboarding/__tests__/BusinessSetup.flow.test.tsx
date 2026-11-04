@@ -64,6 +64,8 @@ beforeEach(() => {
 describe('BusinessSetup', () => {
   it('suggests SKR03 for Germany and IFRS elsewhere', () => {
     expect(suggestedChart('DE')).toBe('de_skr03');
+    expect(suggestedChart('AT')).toBe('at_ekr');
+    expect(suggestedChart('CH')).toBe('ch_kmu');
     expect(suggestedChart('FR')).toBe('ifrs_generic');
   });
 
@@ -91,8 +93,10 @@ describe('BusinessSetup', () => {
     expect([has('at_ekr'), has('ch_kmu')]).toEqual([false, false]);
     fireEvent.change(country, { target: { value: 'AT' } });
     expect([has('at_ekr'), has('ch_kmu')]).toEqual([true, false]);
+    expect((screen.getByTestId('setup-chart') as HTMLSelectElement).value).toBe('at_ekr');
     fireEvent.change(country, { target: { value: 'CH' } });
     expect([has('at_ekr'), has('ch_kmu')]).toEqual([false, true]);
+    expect((screen.getByTestId('setup-chart') as HTMLSelectElement).value).toBe('ch_kmu');
   });
 
   it('walks every step, skipping mail, and issues the first invoice', async () => {
