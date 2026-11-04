@@ -7,8 +7,8 @@ from decimal import Decimal
 
 import httpx
 import pytest
-from pydantic import ValidationError
 import pytest_asyncio
+from pydantic import ValidationError
 
 from app.dependencies import get_current_company_tenant_id, get_current_user_payload, get_session
 from app.modules.contacts.models import Contact
@@ -123,8 +123,15 @@ async def test_contact_without_default_leaves_the_reference_empty(svc, session):
 
 async def test_einvoice_falls_back_to_the_contact_value(client, svc, session):
     buyer = await _buyer(session)
-    doc = await svc.create("invoice", lines=LINES, doc_date=date(2026, 3, 10), due_date=date(2026, 4, 9),
-                           customer_id=buyer.id, customer_name="Stadt Hamburg", customer_vat_id="DE123456789")
+    doc = await svc.create(
+        "invoice",
+        lines=LINES,
+        doc_date=date(2026, 3, 10),
+        due_date=date(2026, 4, 9),
+        customer_id=buyer.id,
+        customer_name="Stadt Hamburg",
+        customer_vat_id="DE123456789",
+    )
     await svc.issue_invoice(doc.id)
     doc.buyer_reference = ""  # issued before the contact had a default
     await session.flush()

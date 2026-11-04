@@ -102,7 +102,13 @@ DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
 
 
 # Charts seeded before the dedicated GRNI account existed keep posting to the old clearing account.
-GRNI_FALLBACK: dict[str, str] = {"de_skr03": "1700", "de_skr04": "3500", "at_ekr": "3700", "ch_kmu": "2210", "ifrs_generic": "2500"}
+GRNI_FALLBACK: dict[str, str] = {
+    "de_skr03": "1700",
+    "de_skr04": "3500",
+    "at_ekr": "3700",
+    "ch_kmu": "2210",
+    "ifrs_generic": "2500",
+}
 
 
 class PurchasingError(Exception):

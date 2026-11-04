@@ -87,8 +87,12 @@ def scor_reference(value: str) -> str:
 def scor_valid(ref: str) -> bool:
     ref = ref.replace(" ", "").upper()
     return (
-        5 <= len(ref) <= 25 and ref.startswith("RF") and ref[2:4].isdigit() and ref.isalnum()
-        and ref.isascii() and _mod97(ref[4:] + ref[:4]) == 1
+        5 <= len(ref) <= 25
+        and ref.startswith("RF")
+        and ref[2:4].isdigit()
+        and ref.isalnum()
+        and ref.isascii()
+        and _mod97(ref[4:] + ref[:4]) == 1
     )
 
 
@@ -148,12 +152,19 @@ def qr_bill_payload(
     if len(message) > 140 or not _ALLOWED.match(message):
         raise QrBillError("message longer than 140 characters or has invalid characters")
     fields = [
-        "SPC", "0200", "1", iban,
+        "SPC",
+        "0200",
+        "1",
+        iban,
         *creditor.fields(),
         *([""] * 7),  # ultimate creditor: reserved, must stay empty
-        amt, currency,
+        amt,
+        currency,
         *(debtor.fields() if debtor else [""] * 7),
-        reference_type, reference, message, "EPD",
+        reference_type,
+        reference,
+        message,
+        "EPD",
     ]
     payload = "\r\n".join(fields)
     if len(payload) > MAX_CHARS:

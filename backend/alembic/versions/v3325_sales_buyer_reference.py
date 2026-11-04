@@ -1,14 +1,14 @@
 """Sales document buyer reference (Leitweg-ID) for the e-invoice export.
 
 Revision ID: v3325_sales_buyer_reference
-Revises: v3324_buyer_selection_currency
+Revises: v76_sales_payment_link
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "v3325_sales_buyer_reference"
-down_revision = "v3324_buyer_selection_currency"
+down_revision = "v76_sales_payment_link"
 branch_labels = None
 depends_on = None
 

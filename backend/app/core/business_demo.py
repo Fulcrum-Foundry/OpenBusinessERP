@@ -1972,9 +1972,7 @@ async def _ensure_ledger(session: AsyncSession, country: str, start: date, end: 
     tpl = await session.scalar(select(GLAccount.template).where(mine, GLAccount.template.is_not(None)).limit(1))
     if tpl is None:
         if await session.scalar(select(GLAccount.id).where(mine).limit(1)) is not None:
-            raise BusinessDemoError(
-                "A custom chart of accounts is loaded; demo data needs a bundled chart template"
-            )
+            raise BusinessDemoError("A custom chart of accounts is loaded; demo data needs a bundled chart template")
         tpl = DEFAULT_CHART.get(country, "ifrs_generic")
         await gl.load_template(tpl)
     if tpl not in EXPENSE_ACCOUNTS:

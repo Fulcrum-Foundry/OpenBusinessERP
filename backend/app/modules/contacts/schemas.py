@@ -109,7 +109,6 @@ class ContactCreate(BaseModel):
     def validate_leitweg_id(cls, v: str | None) -> str | None:
         return (normalise_leitweg_id(v) or None) if v is not None else None
 
-
     name_translations: dict[str, Any] | None = None
     notes: str | None = Field(default=None, max_length=5000)
     metadata: dict[str, Any] = Field(default_factory=dict)

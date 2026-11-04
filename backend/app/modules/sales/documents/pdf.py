@@ -45,9 +45,9 @@ from reportlab.platypus import (
 )
 
 from app.core.pdf_fonts import font_can_draw_all, pdf_font, pdf_font_for_text, pdf_shaping_for_text
+from app.modules.sales.documents import qrbill
 from app.modules.sales.documents.design import read_design, sanitise_design
 from app.modules.sales.documents.girocode import GiroCodeError, epc_payload
-from app.modules.sales.documents import qrbill
 from app.modules.sales.documents.i18n import RTL_LANGUAGES, fmt_date, fmt_money, fmt_qty, fmt_rate, lang, t
 
 W, H = A4
@@ -378,8 +378,12 @@ def _totals(kit: _Kit, lines: list[_Line], net_total: Decimal, gross_total: Deci
         for rate in sorted(by_rate):
             label = t(lg, "net_at_rate", rate=fmt_rate(rate, lg))
             rows.append([_p(label, st["body"]), _p(kit.money(by_rate[rate][0]), st["bodyr"])])
-    rows.append([_p(t(lg, "net_total"), st["bold"] if len(by_rate) > 1 else st["body"]),
-                 _p(kit.money(net_total), st["boldr"] if len(by_rate) > 1 else st["bodyr"])])
+    rows.append(
+        [
+            _p(t(lg, "net_total"), st["bold"] if len(by_rate) > 1 else st["body"]),
+            _p(kit.money(net_total), st["boldr"] if len(by_rate) > 1 else st["bodyr"]),
+        ]
+    )
     for rate in sorted(by_rate):
         net, tax = by_rate[rate]
         if len(by_rate) > 1:
@@ -426,17 +430,67 @@ def _qr_drawing(payload: str, size: float) -> Drawing:
     return d
 
 
-_QRB_KEYS = ("receipt", "payment_part", "account", "reference", "info", "payable_by", "payable_by_blank",
-             "currency", "amount", "acceptance")
+_QRB_KEYS = (
+    "receipt",
+    "payment_part",
+    "account",
+    "reference",
+    "info",
+    "payable_by",
+    "payable_by_blank",
+    "currency",
+    "amount",
+    "acceptance",
+)
 _QRB_LABELS = {
-    "de": ("Empfangsschein", "Zahlteil", "Konto / Zahlbar an", "Referenz", "Zusätzliche Informationen",
-           "Zahlbar durch", "Zahlbar durch (Name/Adresse)", "Währung", "Betrag", "Annahmestelle"),
-    "fr": ("Récépissé", "Section paiement", "Compte / Payable à", "Référence", "Informations supplémentaires",
-           "Payable par", "Payable par (nom/adresse)", "Monnaie", "Montant", "Point de dépôt"),
-    "it": ("Ricevuta", "Sezione pagamento", "Conto / Pagabile a", "Riferimento", "Informazioni supplementari",
-           "Pagabile da", "Pagabile da (nome/indirizzo)", "Valuta", "Importo", "Punto di accettazione"),
-    "en": ("Receipt", "Payment part", "Account / Payable to", "Reference", "Additional information",
-           "Payable by", "Payable by (name/address)", "Currency", "Amount", "Acceptance point"),
+    "de": (
+        "Empfangsschein",
+        "Zahlteil",
+        "Konto / Zahlbar an",
+        "Referenz",
+        "Zusätzliche Informationen",
+        "Zahlbar durch",
+        "Zahlbar durch (Name/Adresse)",
+        "Währung",
+        "Betrag",
+        "Annahmestelle",
+    ),
+    "fr": (
+        "Récépissé",
+        "Section paiement",
+        "Compte / Payable à",
+        "Référence",
+        "Informations supplémentaires",
+        "Payable par",
+        "Payable par (nom/adresse)",
+        "Monnaie",
+        "Montant",
+        "Point de dépôt",
+    ),
+    "it": (
+        "Ricevuta",
+        "Sezione pagamento",
+        "Conto / Pagabile a",
+        "Riferimento",
+        "Informazioni supplementari",
+        "Pagabile da",
+        "Pagabile da (nome/indirizzo)",
+        "Valuta",
+        "Importo",
+        "Punto di accettazione",
+    ),
+    "en": (
+        "Receipt",
+        "Payment part",
+        "Account / Payable to",
+        "Reference",
+        "Additional information",
+        "Payable by",
+        "Payable by (name/address)",
+        "Currency",
+        "Amount",
+        "Acceptance point",
+    ),
 }
 
 
@@ -462,8 +516,15 @@ def _swiss_qr_drawing(payload: str) -> Drawing:
     return d
 
 
-def swiss_qr_bill_data(company: dict[str, Any], *, currency: str, amount: Decimal, reference: str,
-                       debtor_name: str = "", debtor_address: str = "") -> tuple[str, dict[str, Any]] | None:
+def swiss_qr_bill_data(
+    company: dict[str, Any],
+    *,
+    currency: str,
+    amount: Decimal,
+    reference: str,
+    debtor_name: str = "",
+    debtor_address: str = "",
+) -> tuple[str, dict[str, Any]] | None:
     """QR-bill payload + printable fields for a CH/LI business with a CH/LI IBAN, else ``None``."""
     iban = company.get("iban", "")
     if (company.get("country_code") or "").upper() not in ("CH", "LI") or not qrbill.is_swiss_iban(iban):
@@ -484,12 +545,28 @@ def swiss_qr_bill_data(company: dict[str, Any], *, currency: str, amount: Decima
             return None
         ref_type, ref, msg = "NON", "", reference
     try:
-        payload = qrbill.qr_bill_payload(creditor=creditor, iban=iban, amount=amount, currency=currency,
-                                         debtor=debtor, reference_type=ref_type, reference=ref, message=msg)
+        payload = qrbill.qr_bill_payload(
+            creditor=creditor,
+            iban=iban,
+            amount=amount,
+            currency=currency,
+            debtor=debtor,
+            reference_type=ref_type,
+            reference=ref,
+            message=msg,
+        )
     except qrbill.QrBillError:
         return None
-    return payload, {"creditor": creditor, "debtor": debtor, "iban": iban, "ref_type": ref_type,
-                     "reference": ref, "message": msg, "amount": amount, "currency": currency.upper()}
+    return payload, {
+        "creditor": creditor,
+        "debtor": debtor,
+        "iban": iban,
+        "ref_type": ref_type,
+        "reference": ref,
+        "message": msg,
+        "amount": amount,
+        "currency": currency.upper(),
+    }
 
 
 def _addr_lines(a: qrbill.Address) -> list[str]:
@@ -659,8 +736,14 @@ def _payment_block(
     text: list[Any] = [_p(t(lg, "payment_terms"), st["bold"]), _p(terms, st["body"])]
     if bank:
         text += [Spacer(1, 1 * mm), _p(t(lg, "bank"), st["bold"]), _p("\n".join(bank), st["body"])]
-    swiss = swiss_qr_bill_data(company, currency=kit.currency, amount=amount, reference=reference,
-                               debtor_name=debtor_name, debtor_address=debtor_address)
+    swiss = swiss_qr_bill_data(
+        company,
+        currency=kit.currency,
+        amount=amount,
+        reference=reference,
+        debtor_name=debtor_name,
+        debtor_address=debtor_address,
+    )
     if swiss is not None:
         return [KeepTogether(text), *_swiss_payment_part(kit, *swiss)]
     qr = None
@@ -683,9 +766,17 @@ def _payment_block(
     cells = [qr, text] if lg in RTL_LANGUAGES else [text, qr]
     widths = [qr_w, kit.frame_w - qr_w] if lg in RTL_LANGUAGES else [kit.frame_w - qr_w, qr_w]
     block = Table([cells], colWidths=widths)
-    block.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                               ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0),
-                               ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+    block.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
     return [KeepTogether([block])]
 
 

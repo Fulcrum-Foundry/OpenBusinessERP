@@ -48,7 +48,9 @@ def _line_dicts(doc: SalesDocument) -> list[dict[str, Any]]:
         net = Decimal(ln.net or 0)
         # BT-146 is the net price after discount; the line total (BT-131) stays
         # the stored net so the document reconciles with what the PDF printed.
-        price = ln.unit_price if not ln.discount_pct or qty == 0 else (net / qty).quantize(Decimal("0.0001"), ROUND_HALF_UP)
+        price = (
+            ln.unit_price if not ln.discount_pct or qty == 0 else (net / qty).quantize(Decimal("0.0001"), ROUND_HALF_UP)
+        )
         rate = Decimal(ln.tax_rate or 0)
         out.append(
             {

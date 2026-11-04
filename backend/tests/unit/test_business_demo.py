@@ -264,7 +264,10 @@ async def test_dach_demo_uses_local_chart_vat_and_iban(session, monkeypatch, key
     assert posted
     from app.modules.sales.models import SalesLine
 
-    used = {format(r, "f").rstrip("0").rstrip(".") for r in (await session.execute(select(SalesLine.tax_rate).distinct())).scalars()}
+    used = {
+        format(r, "f").rstrip("0").rstrip(".")
+        for r in (await session.execute(select(SalesLine.tax_rate).distinct())).scalars()
+    }
     assert used <= rates | {"0"} and used & {"20", "8.1"}
     iban = business_demo.demo_bank_iban(case)
     assert iban.replace(" ", "").startswith(case.country) and len(iban.replace(" ", "")) == iban_len and _iban_ok(iban)

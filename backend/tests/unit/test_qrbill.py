@@ -7,7 +7,7 @@ from decimal import Decimal
 import pytest
 
 from app.modules.sales.documents import qrbill
-from app.modules.sales.documents.pdf import sample_document, render_document, swiss_qr_bill_data
+from app.modules.sales.documents.pdf import render_document, sample_document, swiss_qr_bill_data
 
 QR_IBAN = "CH4431999123000889012"
 IBAN = "CH5800791123000889012"
@@ -40,9 +40,15 @@ def test_scor_reference():
 
 
 def test_payload_qrr():
-    p = qrbill.qr_bill_payload(creditor=CRED, iban=QR_IBAN, amount=Decimal("1949.75"), debtor=DEBT,
-                               reference_type="QRR", reference="210000000003139471430009017",
-                               message="Auftrag vom 15.06.2020")
+    p = qrbill.qr_bill_payload(
+        creditor=CRED,
+        iban=QR_IBAN,
+        amount=Decimal("1949.75"),
+        debtor=DEBT,
+        reference_type="QRR",
+        reference="210000000003139471430009017",
+        message="Auftrag vom 15.06.2020",
+    )
     f = p.split("\r\n")
     assert f[:4] == ["SPC", "0200", "1", QR_IBAN]
     assert f[4:11] == ["S", "Robert Schneider AG", "Rue du Lac", "1268", "2501", "Biel", "CH"]
@@ -81,11 +87,18 @@ def test_parse_address():
 
 
 def test_only_for_swiss_business():
-    co = {"company_name": "Muster AG", "address": "Bahnhofstrasse 1\n8001 Zürich", "iban": IBAN,
-          "country_code": "CH", "giro_code": True}
+    co = {
+        "company_name": "Muster AG",
+        "address": "Bahnhofstrasse 1\n8001 Zürich",
+        "iban": IBAN,
+        "country_code": "CH",
+        "giro_code": True,
+    }
     data = swiss_qr_bill_data(co, currency="CHF", amount=Decimal("10"), reference="RE-1")
     assert data and data[1]["ref_type"] == "SCOR"
-    assert swiss_qr_bill_data(co | {"country_code": "DE"}, currency="CHF", amount=Decimal("10"), reference="RE-1") is None
+    assert (
+        swiss_qr_bill_data(co | {"country_code": "DE"}, currency="CHF", amount=Decimal("10"), reference="RE-1") is None
+    )
     assert swiss_qr_bill_data(co | {"giro_code": False}, currency="CHF", amount=Decimal("10"), reference="R") is None
     qr = swiss_qr_bill_data(co | {"iban": QR_IBAN}, currency="CHF", amount=Decimal("10"), reference="RE-2026-7")
     assert qr and qr[1]["ref_type"] == "QRR"
@@ -93,8 +106,15 @@ def test_only_for_swiss_business():
 
 def test_pdf_renders_payment_part():
     doc = sample_document("invoice", "de", 2, "CHF")
-    co = {"company_name": "Muster AG", "address": "Bahnhofstrasse 1\n8001 Zürich", "iban": QR_IBAN,
-          "country_code": "CH", "giro_code": True, "document_texts": {}, "logo_data_url": ""}
+    co = {
+        "company_name": "Muster AG",
+        "address": "Bahnhofstrasse 1\n8001 Zürich",
+        "iban": QR_IBAN,
+        "country_code": "CH",
+        "giro_code": True,
+        "document_texts": {},
+        "logo_data_url": "",
+    }
     assert render_document(doc, co).startswith(b"%PDF")
 
 
@@ -106,16 +126,26 @@ def _pages(pdf: bytes) -> list[str]:
     return [p.extract_text() for p in PdfReader(io.BytesIO(pdf)).pages]
 
 
-CO = {"company_name": "Muster AG", "address": "Bahnhofstrasse 1\n8001 Zürich", "iban": QR_IBAN,
-      "country_code": "CH", "giro_code": True, "document_texts": {}, "logo_data_url": ""}
+CO = {
+    "company_name": "Muster AG",
+    "address": "Bahnhofstrasse 1\n8001 Zürich",
+    "iban": QR_IBAN,
+    "country_code": "CH",
+    "giro_code": True,
+    "document_texts": {},
+    "logo_data_url": "",
+}
 
 
-@pytest.mark.parametrize(("lg", "receipt", "part", "account"), [
-    ("de", "Empfangsschein", "Zahlteil", "Konto / Zahlbar an"),
-    ("fr", "Récépissé", "Section paiement", "Compte / Payable à"),
-    ("it", "Ricevuta", "Sezione pagamento", "Conto / Pagabile a"),
-    ("en", "Receipt", "Payment part", "Account / Payable to"),
-])
+@pytest.mark.parametrize(
+    ("lg", "receipt", "part", "account"),
+    [
+        ("de", "Empfangsschein", "Zahlteil", "Konto / Zahlbar an"),
+        ("fr", "Récépissé", "Section paiement", "Compte / Payable à"),
+        ("it", "Ricevuta", "Sezione pagamento", "Conto / Pagabile a"),
+        ("en", "Receipt", "Payment part", "Account / Payable to"),
+    ],
+)
 def test_slip_labels_follow_language(lg, receipt, part, account):
     last = _pages(render_document(sample_document("invoice", lg, 2, "CHF"), CO, language=lg))[-1]
     for label in (receipt, part, account):

@@ -1108,7 +1108,9 @@ class SalesService:
                     months[key] -= net * fx
         payables = None
         try:
-            code = {"de_skr03": "1600", "de_skr04": "3300", "at_ekr": "3300", "ch_kmu": "2000"}.get(await self._chart_template(), "2200")
+            code = {"de_skr03": "1600", "de_skr04": "3300", "at_ekr": "3300", "ch_kmu": "2000"}.get(
+                await self._chart_template(), "2200"
+            )
             tb = await self.gl.trial_balance(None, None)
             row = next((r for r in tb["rows"] if r["code"] == code), None)
             payables = -row["closing"] if row else ZERO
