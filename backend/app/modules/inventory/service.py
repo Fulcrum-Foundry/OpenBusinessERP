@@ -50,6 +50,8 @@ GL_ADJUST = "inventory_adjustment"
 DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
     "de_skr03": {"cogs": "3400", "diff": "4900"},
     "de_skr04": {"cogs": "5400", "diff": "6300"},
+    "at_ekr": {"cogs": "5000", "diff": "7800"},
+    "ch_kmu": {"cogs": "4200", "diff": "6700"},
     "ifrs_generic": {"cogs": "5000", "diff": "5500"},
 }
 

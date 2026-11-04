@@ -258,6 +258,88 @@ DE_SKR04: list[tuple[str, str, str, str | None, bool]] = [
     ("7610", "Gewerbesteuer", X, None, True),
 ]
 
+AT_EKR: list[tuple[str, str, str, str | None, bool]] = [
+    # Klasse 0 Anlagevermögen
+    ("0400", "Maschinen und maschinelle Anlagen", A, None, True),
+    ("0600", "Betriebs- und Geschäftsausstattung", A, None, True),
+    ("0630", "PKW", A, None, True),
+    ("0640", "LKW", A, None, True),
+    # Klasse 1 Vorräte
+    ("1600", "Handelswarenvorrat", A, None, True),
+    # Klasse 2 Sonstiges Umlaufvermögen
+    ("2000", "Lieferforderungen", A, None, True),
+    ("2300", "Sonstige Forderungen", A, None, True),
+    ("2500", "Vorsteuer", A, None, True),
+    ("2700", "Kassa", A, None, True),
+    ("2800", "Bank", A, None, True),
+    # Klasse 3 Verbindlichkeiten
+    ("3100", "Verbindlichkeiten gegenüber Kreditinstituten", L, None, True),
+    ("3300", "Lieferverbindlichkeiten", L, None, True),
+    ("3500", "Umsatzsteuer", L, None, True),
+    ("3700", "Sonstige Verbindlichkeiten", L, None, True),
+    # Klasse 4 Betriebliche Erträge
+    ("4000", "Umsatzerlöse 20 %", I, None, True),
+    ("4800", "Übrige betriebliche Erträge", I, None, True),
+    # Klasse 5 Material- und Warenaufwand
+    ("5000", "Wareneinsatz", X, None, True),
+    # Klasse 6 Personalaufwand
+    ("6000", "Löhne", X, None, True),
+    ("6200", "Gehälter", X, None, True),
+    # Klasse 7 Abschreibungen und sonstige betriebliche Aufwendungen
+    ("7000", "Abschreibungen auf Sachanlagen", X, None, True),
+    ("7400", "Miet- und Pachtaufwand", X, None, True),
+    ("7600", "Büromaterial und Verwaltungsaufwand", X, None, True),
+    ("7650", "Werbeaufwand", X, None, True),
+    ("7700", "Versicherungen", X, None, True),
+    ("7790", "Spesen des Geldverkehrs", X, None, True),
+    ("7800", "Übrige betriebliche Aufwendungen", X, None, True),
+    # Klasse 8 Finanzergebnis
+    ("8300", "Zinsen und ähnliche Aufwendungen", X, None, True),
+    # Klasse 9 Eigenkapital
+    ("9000", "Kapital", E, None, True),
+]
+
+CH_KMU: list[tuple[str, str, str, str | None, bool]] = [
+    # 1 Aktiven
+    ("1000", "Kasse", A, None, True),
+    ("1020", "Bank", A, None, True),
+    ("1100", "Forderungen aus Lieferungen und Leistungen (Debitoren)", A, None, True),
+    ("1170", "Vorsteuer MWST Material, Waren, Dienstleistungen, Energie", A, None, True),
+    ("1171", "Vorsteuer MWST Investitionen, übriger Betriebsaufwand", A, None, True),
+    ("1200", "Handelswaren", A, None, True),
+    ("1300", "Aktive Rechnungsabgrenzungen", A, None, True),
+    ("1500", "Maschinen und Apparate", A, None, True),
+    ("1510", "Mobiliar und Einrichtungen", A, None, True),
+    ("1530", "Fahrzeuge", A, None, True),
+    # 2 Passiven
+    ("2000", "Verbindlichkeiten aus Lieferungen und Leistungen (Kreditoren)", L, None, True),
+    ("2100", "Bankverbindlichkeiten", L, None, True),
+    ("2200", "Geschuldete MWST (Umsatzsteuer)", L, None, True),
+    ("2210", "Sonstige kurzfristige Verbindlichkeiten", L, None, True),
+    ("2300", "Passive Rechnungsabgrenzungen", L, None, True),
+    ("2800", "Aktien-, Stamm- oder Gesellschaftskapital", E, None, True),
+    ("2970", "Gewinnvortrag oder Verlustvortrag", E, None, True),
+    # 3 Betrieblicher Ertrag
+    ("3200", "Handelserlöse", I, None, True),
+    ("3400", "Dienstleistungserlöse", I, None, True),
+    # 4 Aufwand für Material, Handelswaren, Dienstleistungen
+    ("4200", "Handelswarenaufwand", X, None, True),
+    ("4400", "Aufwand für bezogene Dienstleistungen", X, None, True),
+    # 5 Personalaufwand
+    ("5000", "Lohnaufwand", X, None, True),
+    ("5700", "Sozialversicherungsaufwand", X, None, True),
+    # 6 Übriger betrieblicher Aufwand, Abschreibungen, Finanzergebnis
+    ("6000", "Raumaufwand", X, None, True),
+    ("6300", "Sachversicherungen, Abgaben, Gebühren", X, None, True),
+    ("6500", "Verwaltungsaufwand", X, None, True),
+    ("6600", "Werbeaufwand", X, None, True),
+    ("6700", "Sonstiger betrieblicher Aufwand", X, None, True),
+    ("6800", "Abschreibungen", X, None, True),
+    ("6900", "Finanzaufwand", X, None, True),
+    ("6940", "Bankspesen", X, None, True),
+    ("6950", "Finanzertrag", I, None, True),
+]
+
 # Sales accounts by VAT rate: rate -> (revenue, output VAT). Other rates post to the 'revenue'/'vat' roles.
 SALES_RATE_ACCOUNTS: dict[str, dict[Decimal, tuple[str, str]]] = {
     "de_skr03": {Decimal(19): ("8400", "1776"), Decimal(7): ("8300", "1771")},
@@ -297,4 +379,6 @@ TEMPLATES: dict[str, list[tuple[str, str, str, str | None, bool]]] = {
     "ifrs_generic": IFRS_GENERIC,
     "de_skr03": DE_SKR03,
     "de_skr04": DE_SKR04,
+    "at_ekr": AT_EKR,
+    "ch_kmu": CH_KMU,
 }

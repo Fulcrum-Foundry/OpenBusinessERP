@@ -35,8 +35,8 @@ from app.modules.sales.service import SalesError, SalesService
 
 ZERO = Decimal(0)
 SOURCE_BANK = "bank_transaction"
-# Chart fallbacks for the write-off account: "Sonstige betriebliche Aufwendungen" SKR03/SKR04, IFRS "Other operating expenses".
-DEFAULT_WRITEOFF_CODES = ("4900", "6300", "5500")
+# Chart fallbacks for the write-off account: other operating expenses in SKR03/SKR04, IFRS, EKR and KMU.
+DEFAULT_WRITEOFF_CODES = ("4900", "6700", "6300", "5500", "7800")  # 6700 before 6300: KMU 6300 is insurance
 
 
 class BankingError(Exception):

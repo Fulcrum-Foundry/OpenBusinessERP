@@ -253,3 +253,20 @@ async def test_skr04_zero_rate_revenue_follows_the_tax_note(svc04):
         tb = await _closing_by_code(svc04)
         assert tb[code] == D("-1000.00"), note
     assert tb.get("4400", 0) == 0 and tb.get("3806", 0) == 0
+
+
+@pytest.mark.parametrize(
+    ("tpl", "rate", "revenue", "vat", "receivable"),
+    [("at_ekr", "20", "4000", "3500", "2000"), ("ch_kmu", "8.1", "3200", "2200", "1100")],
+)
+async def test_at_and_ch_charts_post_invoices_to_their_role_accounts(session, tpl, rate, revenue, vat, receivable):
+    gl = GLService(session)
+    await gl.load_template(tpl)
+    await gl.create_fiscal_year("FY2026", date(2026, 1, 1), date(2026, 12, 31))
+    svc = SalesService(session)
+    line = LineData("Ware", "W-1", D("1"), D("1000"), D("0"), D(rate))
+    inv = await svc.create("invoice", lines=[line], doc_date=DAY, customer_name="ACME")
+    await svc.issue_invoice(inv.id)
+    tb = await _closing_by_code(svc)
+    assert (tb[revenue], tb[vat]) == (D("-1000.00"), -(D(rate) * 10).quantize(D("0.01")))
+    assert tb[receivable] == inv.gross_total

@@ -7,6 +7,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from app.modules.gl import exports as gx
 
 D = Decimal
@@ -303,20 +305,22 @@ def test_skr04_tax_fold_uses_skr04_accounts():
     assert len(gx.datev_rows(e)) == 2
 
 
-def test_skr04_role_maps_point_at_template_accounts():
+@pytest.mark.parametrize("tpl", ["de_skr04", "at_ekr", "ch_kmu"])
+def test_role_maps_point_at_template_accounts(tpl):
     from app.core.business_demo import EXPENSE_ACCOUNTS
     from app.modules.gl import fx_posting, templates
     from app.modules.inventory import service as inv
     from app.modules.purchasing import service as pur
+    from app.modules.sales import online_payments as op
     from app.modules.sales import service as sal
 
-    codes = {c for c, *_ in templates.TEMPLATES["de_skr04"]}
+    codes = {c for c, *_ in templates.TEMPLATES[tpl]}
     used = {
-        *sal.DEFAULT_ACCOUNTS["de_skr04"].values(), *pur.DEFAULT_ACCOUNTS["de_skr04"].values(),
-        *inv.DEFAULT_ACCOUNTS["de_skr04"].values(), *EXPENSE_ACCOUNTS["de_skr04"].values(),
-        *fx_posting.FX_ACCOUNTS["de_skr04"], *templates.ZERO_RATE_REVENUE["de_skr04"].values(),
-        *(c for pair in templates.SALES_RATE_ACCOUNTS["de_skr04"].values() for c in pair),
-        *(c for pair in templates.PURCHASE_RATE_ACCOUNTS["de_skr04"].values() for c in pair),
-        *gx.TAX_ACCOUNTS["04"], pur.GRNI_FALLBACK["de_skr04"],
+        *sal.DEFAULT_ACCOUNTS[tpl].values(), *pur.DEFAULT_ACCOUNTS[tpl].values(),
+        *inv.DEFAULT_ACCOUNTS[tpl].values(), *EXPENSE_ACCOUNTS[tpl].values(),
+        *fx_posting.FX_ACCOUNTS[tpl], *templates.ZERO_RATE_REVENUE.get(tpl, {}).values(),
+        *(c for pair in templates.SALES_RATE_ACCOUNTS.get(tpl, {}).values() for c in pair),
+        *(c for pair in templates.PURCHASE_RATE_ACCOUNTS.get(tpl, {}).values() for c in pair),
+        *(gx.TAX_ACCOUNTS["04"] if tpl == "de_skr04" else ()), pur.GRNI_FALLBACK[tpl], op.FEE_ACCOUNTS[tpl],
     }  # fmt: skip
     assert used <= codes, used - codes

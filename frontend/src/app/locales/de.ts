@@ -23,6 +23,8 @@ const resource = {
     "bizsetup.chart_ifrs": "IFRS (International)",
     "bizsetup.chart_skr03": "SKR03 (Deutschland)",
     "bizsetup.chart_skr04": "SKR04 (Deutschland)",
+    "bizsetup.chart_at_ekr": "EKR (Österreich)",
+    "bizsetup.chart_ch_kmu": "KMU-Kontenrahmen (Schweiz)",
     "bizsetup.chart_skr_hint": "SKR04, wenn Ihr Steuerberater damit arbeitet",
     "bizsetup.number_format": "Zahlen und Datum: {{sample}}",
     "bizsetup.vat_id": "USt-IdNr.",

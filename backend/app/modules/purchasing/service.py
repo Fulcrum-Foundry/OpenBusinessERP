@@ -74,6 +74,22 @@ DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
         "payables": "3300",
         "bank": "1800",
     },
+    "at_ekr": {
+        "inventory": "1600",
+        "grni": "3700",
+        "expense": "5000",
+        "input_vat": "2500",
+        "payables": "3300",
+        "bank": "2800",
+    },
+    "ch_kmu": {
+        "inventory": "1200",
+        "grni": "2210",
+        "expense": "4200",
+        "input_vat": "1170",
+        "payables": "2000",
+        "bank": "1020",
+    },
     "ifrs_generic": {
         "inventory": "1300",
         "grni": "2550",
@@ -86,7 +102,7 @@ DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
 
 
 # Charts seeded before the dedicated GRNI account existed keep posting to the old clearing account.
-GRNI_FALLBACK: dict[str, str] = {"de_skr03": "1700", "de_skr04": "3500", "ifrs_generic": "2500"}
+GRNI_FALLBACK: dict[str, str] = {"de_skr03": "1700", "de_skr04": "3500", "at_ekr": "3700", "ch_kmu": "2210", "ifrs_generic": "2500"}
 
 
 class PurchasingError(Exception):

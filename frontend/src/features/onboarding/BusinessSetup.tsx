@@ -386,6 +386,12 @@ export function BusinessSetup() {
                   {form.country_code === 'DE' && (
                     <option value="de_skr04">{t('bizsetup.chart_skr04', { defaultValue: 'SKR04 (Germany)' })}</option>
                   )}
+                  {form.country_code === 'AT' && (
+                    <option value="at_ekr">{t('bizsetup.chart_at_ekr', { defaultValue: 'EKR (Austria)' })}</option>
+                  )}
+                  {form.country_code === 'CH' && (
+                    <option value="ch_kmu">{t('bizsetup.chart_ch_kmu', { defaultValue: 'KMU-Kontenrahmen (Switzerland)' })}</option>
+                  )}
                 </select>
                 {form.country_code === 'DE' && (
                   <p className="mt-1 text-2xs text-content-tertiary" data-testid="setup-chart-hint">

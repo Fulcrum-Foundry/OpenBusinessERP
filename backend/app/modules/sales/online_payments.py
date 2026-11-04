@@ -81,7 +81,7 @@ class ProviderPayment:
     fee_currency: str = ""
 
 
-FEE_ACCOUNTS = {"de_skr03": "4970", "de_skr04": "6855"}  # Nebenkosten des Geldverkehrs
+FEE_ACCOUNTS = {"de_skr03": "4970", "de_skr04": "6855", "at_ekr": "7790", "ch_kmu": "6940"}  # bank charges
 
 
 def _places(currency: str) -> int:

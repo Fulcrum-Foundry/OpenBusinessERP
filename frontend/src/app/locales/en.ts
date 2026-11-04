@@ -23,6 +23,8 @@ const resource = {
     "bizsetup.chart_ifrs": "IFRS (international)",
     "bizsetup.chart_skr03": "SKR03 (Germany)",
     "bizsetup.chart_skr04": "SKR04 (Germany)",
+    "bizsetup.chart_at_ekr": "EKR (Austria)",
+    "bizsetup.chart_ch_kmu": "KMU-Kontenrahmen (Switzerland)",
     "bizsetup.chart_skr_hint": "SKR04 if your tax adviser uses it",
     "bizsetup.number_format": "Numbers and dates: {{sample}}",
     "bizsetup.vat_id": "VAT ID",

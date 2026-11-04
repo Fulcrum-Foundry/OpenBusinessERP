@@ -84,6 +84,17 @@ describe('BusinessSetup', () => {
     expect(screen.getByTestId('setup-chart').querySelector('option[value="de_skr04"]')).toBeNull();
   });
 
+  it('offers EKR for Austria and KMU for Switzerland only', async () => {
+    renderAt();
+    const country = await screen.findByTestId('setup-country');
+    const has = (v: string) => screen.getByTestId('setup-chart').querySelector(`option[value="${v}"]`) !== null;
+    expect([has('at_ekr'), has('ch_kmu')]).toEqual([false, false]);
+    fireEvent.change(country, { target: { value: 'AT' } });
+    expect([has('at_ekr'), has('ch_kmu')]).toEqual([true, false]);
+    fireEvent.change(country, { target: { value: 'CH' } });
+    expect([has('at_ekr'), has('ch_kmu')]).toEqual([false, true]);
+  });
+
   it('walks every step, skipping mail, and issues the first invoice', async () => {
     renderAt();
     fireEvent.change(await screen.findByTestId('setup-company-name'), { target: { value: 'Acme GmbH' } });

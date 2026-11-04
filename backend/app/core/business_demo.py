@@ -72,6 +72,42 @@ EXPENSE_ACCOUNTS: dict[str, dict[str, str]] = {
         "loan": "3150",
         "interest": "7300",
     },
+    "at_ekr": {
+        "bank": "2800",
+        "equity": "9000",
+        "input_vat": "2500",
+        "goods": "5000",
+        "services": "7800",
+        "rent": "7400",
+        "wages": "6200",
+        "marketing": "7650",
+        "software": "7600",
+        "other": "7800",
+        "revenue": "4000",
+        "payables": "3300",
+        "inventory": "1600",
+        "cogs": "5000",
+        "loan": "3100",
+        "interest": "8300",
+    },
+    "ch_kmu": {
+        "bank": "1020",
+        "equity": "2800",
+        "input_vat": "1170",
+        "goods": "4200",
+        "services": "4400",
+        "rent": "6000",
+        "wages": "5000",
+        "marketing": "6600",
+        "software": "6500",
+        "other": "6700",
+        "revenue": "3200",
+        "payables": "2000",
+        "inventory": "1200",
+        "cogs": "4200",
+        "loan": "2100",
+        "interest": "6900",
+    },
     "ifrs_generic": {
         "bank": "1710",
         "equity": "3000",
@@ -1864,7 +1900,7 @@ async def _ensure_ledger(session: AsyncSession, country: str, start: date, end: 
     if tpl is None:
         if await session.scalar(select(GLAccount.id).where(mine).limit(1)) is not None:
             raise BusinessDemoError(
-                "A custom chart of accounts is loaded; demo data needs de_skr03, de_skr04 or ifrs_generic"
+                "A custom chart of accounts is loaded; demo data needs a bundled chart template"
             )
         tpl = "de_skr03" if country == "DE" else "ifrs_generic"
         await gl.load_template(tpl)

@@ -94,6 +94,8 @@ ROLES = ("receivable", "revenue", "vat", "bank")
 DEFAULT_ACCOUNTS: dict[str, dict[str, str]] = {
     "de_skr03": {"receivable": "1400", "revenue": "8400", "vat": "1776", "bank": "1200"},
     "de_skr04": {"receivable": "1200", "revenue": "4400", "vat": "3806", "bank": "1800"},
+    "at_ekr": {"receivable": "2000", "revenue": "4000", "vat": "3500", "bank": "2800"},
+    "ch_kmu": {"receivable": "1100", "revenue": "3200", "vat": "2200", "bank": "1020"},
     "ifrs_generic": {"receivable": "1400", "revenue": "4000", "vat": "2300", "bank": "1710"},
 }
 
@@ -1102,7 +1104,7 @@ class SalesService:
                     months[key] -= net * fx
         payables = None
         try:
-            code = {"de_skr03": "1600", "de_skr04": "3300"}.get(await self._chart_template(), "2200")
+            code = {"de_skr03": "1600", "de_skr04": "3300", "at_ekr": "3300", "ch_kmu": "2000"}.get(await self._chart_template(), "2200")
             tb = await self.gl.trial_balance(None, None)
             row = next((r for r in tb["rows"] if r["code"] == code), None)
             payables = -row["closing"] if row else ZERO
