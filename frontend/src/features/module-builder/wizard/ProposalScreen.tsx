@@ -212,7 +212,7 @@ export function ProposalScreen({
               <ol className="flex flex-wrap items-center gap-1.5 text-xs">
                 {features.status.states.map((state, i) => (
                   <li key={i} className="flex items-center gap-1.5">
-                    {i > 0 && <span aria-hidden className="text-content-quaternary">→</span>}
+                    {i > 0 && <span aria-hidden className="inline-block text-content-quaternary rtl:rotate-180">→</span>}
                     <span
                       className={clsx(
                         'rounded-full px-2 py-0.5 font-medium',
