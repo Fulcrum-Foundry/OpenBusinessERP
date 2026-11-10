@@ -98,3 +98,24 @@ apply the deployed version with `code_update_strategy: {"mode":"immediate"}`
 through the Worker deployments API. This updates the controller; it does not
 automatically replace an already running container or apply new container
 environment variables. Plan a container replacement when changing those values.
+
+## Pilot verification — 2026-11-10
+
+- Protected health returned `healthy`, database `ok`, all 189 modules loaded,
+  schema/model and migration-head checks passing, validated constraints, and
+  no failed data repairs.
+- Owner administrator registration and login succeeded. A test project and text
+  document were created through ERP APIs; download matched the original bytes.
+- After explicitly destroying and starting the container, administrator login,
+  the project record, uploaded bytes, and file-backed business settings all
+  survived. The replacement process reported a new instance ID and healthy
+  checks. Test settings were restored, the document deleted, and project archived.
+- Browser inspection confirmed that the deployed frontend rendered its sign-in
+  form. Access admission was exercised with a temporary service credential;
+  human email-code delivery was not automated or tested on behalf of teammates.
+- Anonymous and forged-assertion requests redirected to Access; the disabled
+  workers.dev hostname returned 403. TypeScript and all five JWT tests passed.
+- The temporary container-replacement route was removed before the final build.
+- The temporary Access policy and service token were deleted after verification.
+  The revoked credential now redirects to the Access login gate. The remaining
+  policy allows only the four explicitly approved Fulcrum team identities.
