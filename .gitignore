@@ -449,3 +449,6 @@ email-delivery-failures*.jsonl
 
 # mkdocs build output
 /site/
+
+# Cloudflare CLI generated local state and types
+/.cloudflare/
