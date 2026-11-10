@@ -32,6 +32,7 @@ export class ERP extends DurableObject<Env> {
           SEED_DEMO: "false",
           APP_ENV: "production",
           APP_DEBUG: "false",
+          FORWARDED_ALLOW_IPS: "*",
           ALLOWED_ORIGINS: `https://${HOST}`,
           DATABASE_POOL_SIZE: "5",
           DATABASE_MAX_OVERFLOW: "3",
@@ -57,11 +58,14 @@ export class ERP extends DurableObject<Env> {
     url.protocol = "http:";
     url.host = "container";
     const forwarded = new Request(url, request);
-    forwarded.headers.delete("host");
+    forwarded.headers.set("host", HOST);
     forwarded.headers.set("X-Forwarded-Proto", "https");
     forwarded.headers.set("X-Forwarded-Host", HOST);
+    forwarded.headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") || "127.0.0.1");
     // ERP authorization remains independent of the Access admission policy.
     forwarded.headers.delete("Cf-Access-Jwt-Assertion");
+    forwarded.headers.delete("CF-Access-Client-Id");
+    forwarded.headers.delete("CF-Access-Client-Secret");
     return this.ctx.container!.getTcpPort(PORT).fetch(forwarded);
   }
 }

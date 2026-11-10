@@ -66,6 +66,13 @@ A minute cron keeps the instance active so upstream in-process schedulers can
 run. It therefore consumes container resources while idle. Restarts still
 interrupt background work; this is not an exactly-once job execution system.
 Demo data/login are disabled. Application pool size is 5 with 3 overflow slots.
+The first boot took approximately eight minutes to initialize the schema and
+load all 189 modules; allow several minutes after a cold restart.
+
+Outbound ERP email is not configured for this pilot. Password-reset messages,
+invitations, and document emails are not delivered until SMTP is configured.
+Cloudflare Access email codes are a separate service and do not depend on ERP
+SMTP. No frontier-model API key has been configured.
 
 ## Operations
 
@@ -84,3 +91,10 @@ Before opening a new release to the team, verify denied anonymous and forged-tok
 requests, authorized login, representative ERP read/write operations, settings
 and uploaded-file persistence across container replacement, and disabled alternate
 Worker URLs. Temporary deployment service tokens must be revoked after testing.
+
+Cloudflare can defer Durable Object code updates for five minutes after a Worker
+deployment. When testing a newly added lifecycle method, wait for that update or
+apply the deployed version with `code_update_strategy: {"mode":"immediate"}`
+through the Worker deployments API. This updates the controller; it does not
+automatically replace an already running container or apply new container
+environment variables. Plan a container replacement when changing those values.
